@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Audit{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (LIGHT & DARK IMAGES) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        pointer-events: none;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Serene destination road) */
+        background-image: url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Light Mode Overlay */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        /* Slight blue tint to match the feedback page theme */
+        background: rgba(249, 250, 251, 0.75);
+        backdrop-filter: blur(4px);
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Moody night road with light trails) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1508243529287-e21914733111?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.85);
+    }
+
+    /* Glass Cards */
+    .glass-card {
+        backdrop-filter: blur(16px);
+        border-radius: 24px;
+        transition: all 0.3s;
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1);
+    }
+
+    /* Royal Input */
+    html:not(.dark) .royal-input { background: white; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px; border-radius: 12px; width: 100%; transition: all 0.3s; outline: none; }
+    html:not(.dark) .royal-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+    .dark .royal-input { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 16px; border-radius: 12px; width: 100%; transition: all 0.3s; outline: none; }
+    .dark .royal-input:focus { border-color: #3b82f6; background: rgba(0,0,0,0.6); }
+
+    /* Fix dropdowns */
+    select.royal-input option { background-color: #ffffff; color: #0f172a; }
+    .dark select.royal-input option { background-color: #0f172a; color: white; }
+
+    /* Star Rating Interactive Styles */
+    .star-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+    html:not(.dark) .star-btn { color: #cbd5e1; }
+    .dark .star-btn { color: #334155; }
+
+    .star-btn:hover { transform: scale(1.15); }
+
+    /* Yellow active state for stars */
+    .star-active { color: #fbbf24 !important; text-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.5s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-bg" id="hero-bg"></div>
+
+<div class="pt-20 pb-12 px-6 relative z-10 animate-slide-up">
+    <div class="max-w-3xl mx-auto text-center">
+        <div class="w-16 h-16 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-6 border border-blue-200 dark:border-blue-500/20 shadow-sm transition-colors">
+            <i class="fa-solid fa-star-half-stroke"></i>
+        </div>
+        <h1 class="text-3xl md:text-5xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-4 transition-colors">
+            Quality Audit
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 text-sm md:text-base transition-colors">Your feedback is tied directly to your ticket to ensure operator accountability.</p>
+    </div>
+</div>
+
+<div class="container mx-auto px-6 py-8 relative z-10">
+    <div class="max-w-2xl mx-auto glass-card p-8 md:p-10 mb-20 relative overflow-hidden animate-slide-up" style="animation-delay: 0.1s;">
+
+        <div class="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <form method="POST" action="{{ url_for('feedback') }}" id="feedback-form" class="relative z-10">
+
+            <div class="mb-8">
+                <label for="booking_id" class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 transition-colors">Select Journey to Review</label>
+                <div class="relative">
+                    <i class="fa-solid fa-ticket absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 dark:text-brand-blue z-10 pointer-events-none transition-colors"></i>
+                    <!-- FIXED: Added !pl-12 to prevent text overlapping -->
+                    <select name="booking_id" id="booking_id" class="royal-input !pl-12 appearance-none cursor-pointer relative z-0" required>
+                        <option value="" disabled selected>-- Choose a past ticket --</option>
+                        {% for b in bookings %}
+                            <option value="{{ b.id }}">{{ b.pnr }} : {{ b.route }} ({{ b.date }})</option>
+                        {% endfor %}
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs pointer-events-none z-10 transition-colors"></i>
+                </div>
+
+                {% if not bookings %}
+                    <p class="text-xs text-red-600 dark:text-red-400 mt-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg flex items-center transition-colors">
+                        <i class="fa-solid fa-circle-info mr-2"></i> You need to complete a journey before leaving a review.
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="text-center mb-10 border-t border-gray-200 dark:border-white/5 pt-8 transition-colors">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4 transition-colors">Overall Rating</p>
+                <div class="flex justify-center gap-3 text-4xl" id="star-container">
+                    <i class="fa-solid fa-star star-btn" data-value="1"></i>
+                    <i class="fa-solid fa-star star-btn" data-value="2"></i>
+                    <i class="fa-solid fa-star star-btn" data-value="3"></i>
+                    <i class="fa-solid fa-star star-btn" data-value="4"></i>
+                    <i class="fa-solid fa-star star-btn" data-value="5"></i>
+                </div>
+                <input type="hidden" name="rating" id="rating-input" value="0" required>
+                <p id="rating-text" class="text-yellow-600 dark:text-brand-gold font-bold mt-4 text-sm h-5 tracking-wide transition-colors"></p>
+            </div>
+
+            <div class="mb-8">
+                <label for="comments" class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 transition-colors">Detailed Feedback</label>
+                <textarea name="comments" id="comments" rows="4" class="royal-input resize-none" placeholder="Tell us about the bus comfort, punctuality, and staff behavior..." required></textarea>
+            </div>
+
+            {% if not bookings %}
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/30 transition-all opacity-50 cursor-not-allowed grayscale" disabled>
+                    Submit Audit Report
+                </button>
+            {% else %}
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-brand-blue dark:hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 dark:shadow-blue-900/30 transition-all transform hover:-translate-y-1">
+                    Submit Audit Report
+                </button>
+            {% endif %}
+
+        </form>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Parallax background logic
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 80;
+        const dy = (cy - e.pageY) / 80;
+
+        if(bg) bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+
+    const stars = document.querySelectorAll('.star-btn');
+    const ratingInput = document.getElementById('rating-input');
+    const ratingText = document.getElementById('rating-text');
+
+    const feedbackTexts = ["", "Poor Experience", "Below Expectations", "Average Journey", "Very Good", "Excellent - Royal Standard!"];
+    let currentRating = 0;
+
+    stars.forEach(star => {
+        // Hover effect
+        star.addEventListener('mouseover', function() {
+            const val = parseInt(this.getAttribute('data-value'));
+            highlightStars(val);
+            ratingText.innerText = feedbackTexts[val];
+        });
+
+        // Restore original selection when mouse leaves
+        star.addEventListener('mouseleave', function() {
+            highlightStars(currentRating);
+            ratingText.innerText = feedbackTexts[currentRating];
+        });
+
+        // Click to lock rating
+        star.addEventListener('click', function() {
+            currentRating = parseInt(this.getAttribute('data-value'));
+            ratingInput.value = currentRating;
+            highlightStars(currentRating);
+        });
+    });
+
+    function highlightStars(val) {
+        stars.forEach(star => {
+            const starVal = parseInt(star.getAttribute('data-value'));
+            if (starVal <= val) {
+                // If the star's value is less than or equal to the hover/click value, turn it yellow
+                star.classList.add('star-active');
+            } else {
+                // Otherwise, revert it
+                star.classList.remove('star-active');
+            }
+        });
+    }
+
+    // Prevent form submission if stars aren't clicked
+    document.getElementById('feedback-form').addEventListener('submit', function(e) {
+        if (ratingInput.value === "0" || ratingInput.value === 0) {
+            e.preventDefault();
+            alert("Please select a star rating (1-5) before submitting.");
+        }
+    });
+</script>
+{% endblock %}

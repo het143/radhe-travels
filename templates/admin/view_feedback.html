@@ -1,0 +1,113 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Quality Monitor{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Quality Monitor</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Audit passenger feedback to ensure operators maintain the Royal Standard.</p>
+        </div>
+        <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 w-fit transition-colors shadow-sm dark:shadow-none">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-bold tracking-widest transition-colors">Total Reviews</p>
+            <p class="text-lg font-mono text-purple-600 dark:text-brand-purple font-bold leading-none transition-colors">{{ feedbacks|length }}</p>
+        </div>
+    </header>
+
+    <div class="space-y-8 animate-slide-up" style="animation-delay: 0.1s;">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-xl flex items-center gap-3 transition-colors {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} shadow-sm">
+                        <i class="fa-solid {% if category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                        <span class="text-sm font-bold">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="glass-card overflow-hidden transition-colors">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-comments text-purple-600 dark:text-brand-purple mr-2 transition-colors"></i> Feedback Log</h3>
+
+                <div class="relative w-full sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                    <label for="searchInput" class="sr-only">Search Feedback</label>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search Operator or PNR..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-purple-600 dark:focus:border-brand-purple transition-colors shadow-sm dark:shadow-inner">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full max-h-[600px]">
+                <table class="w-full min-w-[1000px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold w-1/6 transition-colors">Passenger</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold w-1/4 transition-colors">Journey Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold w-1/6 transition-colors">Operator</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold w-1/3 transition-colors">Rating & Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for fb in feedbacks %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4 align-top">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ fb.passenger }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 mt-1 transition-colors">{{ fb.date }}</p>
+                            </td>
+                            <td class="p-4 align-top">
+                                <p class="text-sm font-bold text-blue-600 dark:text-brand-blue transition-colors">{{ fb.route }}</p>
+                                <p class="text-[10px] text-gray-600 dark:text-gray-400 mt-1 transition-colors">Journey: <span class="font-bold text-gray-900 dark:text-gray-300 transition-colors">{{ fb.journey_date }}</span></p>
+                                <p class="text-xs font-mono text-yellow-700 dark:text-brand-gold mt-1 bg-yellow-100 dark:bg-brand-gold/10 inline-block px-1.5 rounded transition-colors border border-yellow-300 dark:border-transparent">{{ fb.pnr }}</p>
+                            </td>
+                            <td class="p-4 align-top">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ fb.operator }}</p>
+                            </td>
+                            <td class="p-4 align-top">
+                                <div class="flex items-center gap-1 mb-2">
+                                    {% for i in range(fb.rating) %}
+                                        <i class="fa-solid fa-star text-yellow-500 dark:text-brand-gold text-xs transition-colors"></i>
+                                    {% endfor %}
+                                    {% for i in range(5 - fb.rating) %}
+                                        <i class="fa-regular fa-star text-gray-300 dark:text-gray-600 text-xs transition-colors"></i>
+                                    {% endfor %}
+                                </div>
+                                <p class="text-sm text-gray-800 dark:text-gray-300 leading-relaxed bg-white dark:bg-black/30 p-3 rounded-lg border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none transition-colors">{{ fb.comments }}</p>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No passenger feedback has been submitted yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Real-time Search Filter for Feedback
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(input) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

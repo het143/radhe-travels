@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Premier Deals & Live Offers | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (LIGHT & DARK IMAGES) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        pointer-events: none;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Golden hour, aspirational travel scene) */
+        background-image: url('https://images.unsplash.com/photo-1465447142348-e9952c393450?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Light Mode Overlay (Ensures text readability while keeping golden hues) */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.4); /* Reduced to 40% so image pops */
+        backdrop-filter: blur(4px);
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Dark highway with golden/red light trails) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1508243771214-6e95d137426b?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.85);
+    }
+
+    .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Discount Card styling: Premium glassmorphism */
+    .offer-card {
+        backdrop-filter: blur(16px);
+        border-radius: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden; position: relative;
+    }
+
+    .dark .offer-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html:not(.dark) .offer-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .offer-card:hover { transform: translateY(-8px) scale(1.02); border-color: #fbbf24; }
+    .dark .offer-card:hover { background: rgba(30, 41, 59, 0.7); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.7); }
+    html:not(.dark) .offer-card:hover { box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1); }
+
+    /* Font Awesome floating background icon */
+    .offer-card::before {
+        content: '\f279'; font-family: 'Font Awesome 6 Free', serif; font-weight: 900;
+        position: absolute; left: -20px; bottom: -20px; font-size: 8rem;
+        pointer-events: none; transition: all 0.5s; transform: rotate(15deg);
+    }
+
+    .dark .offer-card::before { color: rgba(251, 191, 36, 0.03); }
+    html:not(.dark) .offer-card::before { color: rgba(0, 0, 0, 0.02); }
+
+    .offer-card:hover::before { color: rgba(251, 191, 36, 0.08); transform: rotate(0deg) scale(1.1); }
+
+    /* Golden text gradient */
+    .text-gradient-gold {
+        background: linear-gradient(to right, #f59e0b, #fbbf24, #f59e0b);
+        background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    /* Empty State Glass Card */
+    .dark .empty-glass-card {
+        background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(16px);
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    html:not(.dark) .empty-glass-card {
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px);
+        border: 2px dashed rgba(0, 0, 0, 0.1);
+    }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-bg" id="hero-bg"></div>
+
+<div class="pt-24 pb-12 px-6 relative z-10 animate-slide-up">
+    <div class="max-w-6xl mx-auto text-center mb-16">
+        <span class="inline-block px-4 py-1.5 rounded-full bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-300 dark:border-brand-gold/30 text-yellow-600 dark:text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-6 backdrop-blur-md transition-colors">
+            The Gold Standard of Journeys
+        </span>
+        <h1 class="text-4xl md:text-6xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-6 transition-colors drop-shadow-md">
+            Discover Premium <br>Corridors: <span class="text-gradient-gold italic font-serif">Live Offers.</span>
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 text-lg md:text-xl max-w-xl mx-auto leading-relaxed transition-colors">
+            Explore exclusive discounts, cashback opportunities, and fleet-specific deals designed for our Royal travelers.
+        </p>
+    </div>
+</div>
+
+<div class="container mx-auto px-6 py-10 mb-32 relative z-10">
+    <div class="max-w-6xl mx-auto space-y-8 reveal animate-slide-up" style="animation-delay: 0.1s;">
+
+        {% for offer in offers %}
+        <div class="offer-card p-8 flex flex-col lg:flex-row justify-between items-center gap-8 group">
+
+            <div class="flex-1 w-full relative z-10">
+                <div class="flex items-center gap-3 mb-5">
+                    <span class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-[10px] text-gray-500 font-mono tracking-widest transition-colors">
+                        CODE:
+                    </span>
+                    <span class="text-sm font-mono font-extrabold text-gray-800 dark:text-gray-300 tracking-wider group-hover:text-yellow-600 dark:group-hover:text-brand-gold transition">{{ offer.code }}</span>
+                </div>
+
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 leading-tight group-hover:tracking-tight transition-all duration-300">{{ offer.title }}</h3>
+                <p class="text-[10px] text-yellow-600 dark:text-brand-gold uppercase tracking-[0.2em] font-bold">{{ offer.operator }}</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-5 leading-relaxed transition-colors">Requires minimum transaction. Subject to operator terms and availability. Valid only on Radhe Travels mobile application or website.</p>
+            </div>
+
+            <div class="lg:w-px h-px lg:h-24 bg-gray-300 dark:bg-white/5 border border-dashed border-gray-300 dark:border-white/10 lg:rotate-0 rotate-90 my-2 lg:my-0 shrink-0 transition-colors"></div>
+
+            <div class="flex flex-col items-center justify-center shrink-0 w-full lg:w-48 relative z-10">
+                <p class="text-8xl md:text-9xl font-heading font-black text-gray-900 dark:text-white leading-none tracking-tighter opacity-80 group-hover:opacity-100 transition duration-500 group-hover:scale-105">
+                    {{ "%.0f"|format(offer.discount) }}<span class="text-7xl text-yellow-600 dark:text-brand-gold">%</span>
+                </p>
+                <p class="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mt-2 mb-6 transition-colors">Instant Discount</p>
+                <span class="text-[10px] text-gray-600 dark:text-gray-400 font-mono transition-colors">Valid Until: {{ offer.valid_until }}</span>
+            </div>
+
+        </div>
+        {% else %}
+        <div class="empty-glass-card p-20 text-center rounded-3xl animate-slide-up">
+            <div class="w-20 h-20 bg-gray-200 dark:bg-white/5 rounded-full flex items-center justify-center text-3xl text-gray-500 dark:text-gray-600 mx-auto mb-6 border border-gray-300 dark:border-white/10 shadow-inner transition-colors">
+                <i class="fa-solid fa-gift"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">No active offers right now.</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 max-w-sm mx-auto transition-colors">Our marketing team is crafting premium deals as we speak. Check back soon for exclusive Royal Standard savings.</p>
+            <a href="{{ url_for('search_bus') }}" class="inline-block bg-gray-900 text-white dark:bg-white dark:text-black font-bold px-8 py-4 rounded-xl shadow-lg transition hover:bg-yellow-500 hover:text-black dark:hover:bg-brand-gold dark:hover:text-gray-900 hover:-translate-y-1">
+                Book regular journey <i class="fa-solid fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Subtle Mouse Parallax for Background
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        if (!bg) return;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 90;
+        const dy = (cy - e.pageY) / 90;
+        bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+</script>
+{% endblock %}

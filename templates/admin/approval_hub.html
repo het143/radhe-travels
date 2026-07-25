@@ -1,0 +1,586 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Approval Engine Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Custom Royal Input Light/Dark Handling */
+    .royal-input {
+        padding: 10px 12px; border-radius: 8px; width: 100%;
+        font-size: 0.75rem; outline: none; transition: all 0.3s;
+    }
+    .dark .royal-input {
+        background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: white;
+    }
+    .dark .royal-input:focus { border-color: #8b5cf6; background: rgba(0, 0, 0, 0.6); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+
+    html:not(.dark) .royal-input {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+    }
+    html:not(.dark) .royal-input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+    html:not(.dark) .royal-input::placeholder { color: #94a3b8; }
+
+    /* Select styling for dark mode */
+    select.royal-input option, select option { background-color: #ffffff; color: #0f172a; }
+    .dark select.royal-input option, .dark select option { background-color: #0f172a; color: white; }
+
+    /* Tab Buttons */
+    .tab-btn {
+        padding: 12px 24px; font-weight: bold; font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase;
+        border-bottom: 3px solid transparent; transition: all 0.3s; color: #64748b;
+    }
+    .dark .tab-btn:hover { color: white; }
+    html:not(.dark) .tab-btn:hover { color: #0f172a; }
+
+    .dark .tab-btn.active { border-bottom-color: #8b5cf6; color: white; }
+    html:not(.dark) .tab-btn.active { border-bottom-color: #8b5cf6; color: #0f172a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-[96%] 2xl:max-w-[1600px] mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-8 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Approval Engine Hub</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Review and authorize Routes, Seat Layouts, and Schedules from a master queue.</p>
+        </div>
+    </header>
+
+    <div class="flex space-x-2 md:space-x-8 border-b border-gray-200 dark:border-white/10 mb-8 animate-slide-up overflow-x-auto whitespace-nowrap transition-colors">
+        {% set pending_routes = routes | selectattr('status', 'equalto', 0) | list %}
+        {% set pending_layouts = layouts | selectattr('status', 'equalto', 1) | list %}
+        {% set pending_schedules = schedules | selectattr('status', 'equalto', 0) | list %}
+        {% set total_pending = (pending_routes|length) + (pending_layouts|length) + (pending_schedules|length) %}
+
+        <button id="btn-engine" onclick="switchTab('engine')" class="tab-btn active">
+            <i class="fa-solid fa-layer-group mr-2"></i>1. Priority Queue
+            {% if total_pending > 0 %}<span class="ml-2 text-[10px] bg-red-600 dark:bg-red-500 text-white px-2 py-0.5 rounded-full transition-colors">{{ total_pending }}</span>{% endif %}
+        </button>
+        <button id="btn-registry" onclick="switchTab('registry')" class="tab-btn">
+            <i class="fa-solid fa-server mr-2"></i>2. Global History
+        </button>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-8 p-4 rounded-xl flex items-center gap-3 transition-colors {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} animate-slide-up shadow-sm">
+                    <i class="fa-solid {% if category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                    <span class="text-sm font-bold">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div id="tab-engine" class="tab-content block animate-slide-up" style="animation-delay: 0.1s;">
+
+        <form method="POST" action="{{ url_for('admin_batch_action') }}" onsubmit="return validateBatchSubmit()">
+            <div class="glass-card overflow-hidden mb-8 transition-colors">
+
+                <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 transition-colors">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-bolt text-yellow-600 dark:text-brand-gold mr-2 transition-colors"></i> Master Approval Queue</h3>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto">
+                        <div class="w-full md:w-auto">
+                            <label for="globalFeedbackEngine" class="sr-only">Global Feedback</label>
+                            <input type="text" id="globalFeedbackEngine" name="global_feedback" placeholder="Feedback for selected items..." class="royal-input py-2 text-xs w-full md:w-64" style="padding-top:10px; padding-bottom:10px;">
+                        </div>
+
+                        <div class="flex w-full md:w-auto gap-2">
+                            <button type="submit" name="batch_action" value="reject" class="flex-1 md:flex-none bg-red-50 dark:bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 dark:hover:text-white border border-red-200 dark:border-red-500/30 px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-xmark"></i> Reject
+                            </button>
+                            <button type="submit" name="batch_action" value="approve" class="flex-1 md:flex-none bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white dark:hover:bg-green-500 dark:hover:text-white border border-green-200 dark:border-green-500/30 px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-check"></i> Approve Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 pb-2 border-b border-gray-200 dark:border-white/5 transition-colors">
+                    <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest transition-colors"><i class="fa-solid fa-road text-yellow-600 dark:text-brand-gold mr-2 transition-colors"></i> Part 1: Infrastructure (Routes & Fleet)</h4>
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full min-w-[1000px] text-left mb-6">
+                        <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                            <tr>
+                                <th class="p-4 w-12 text-center">
+                                    <label for="selectAllInfra" class="sr-only">Select All Infrastructure</label>
+                                    <input type="checkbox" id="selectAllInfra" onchange="document.querySelectorAll('.infra-checkbox').forEach(cb => cb.checked = this.checked)" class="w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                                </th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Request Type</th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Operator & ID</th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Core Details</th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Operator Note</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+
+                            {% for r in pending_routes %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td class="p-4 text-center align-top pt-6">
+                                    <label for="route_id_{{ r.id }}" class="sr-only">Select Route</label>
+                                    <input type="checkbox" id="route_id_{{ r.id }}" name="route_ids" value="{{ r.id }}" class="row-checkbox infra-checkbox w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-brand-red bg-red-50 dark:bg-brand-red/10 border border-red-200 dark:border-brand-red/20 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-route"></i> Route</span>
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-1.5 text-xs transition-colors"></i>{{ r.operator_name }}</p>
+                                    <span class="text-xs font-mono text-gray-500 dark:text-gray-400 transition-colors">RT-{{ r.id }}</span>
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.source }}</span>
+                                        <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-600 text-xs transition-colors"></i>
+                                        <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.destination }}</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 font-mono transition-colors">{{ r.distance }} KM</span>
+                                </td>
+                                <td class="p-4 align-top pt-6 min-w-[250px]">
+                                    {% if r.operator_remarks %}
+                                        <p class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/5 p-2 rounded italic transition-colors">"{{ r.operator_remarks }}"</p>
+                                    {% else %}
+                                        <p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                            {% for l in pending_layouts %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td class="p-4 text-center align-top pt-6">
+                                    <label for="bus_id_{{ l.bus_id }}" class="sr-only">Select Layout</label>
+                                    <input type="checkbox" id="bus_id_{{ l.bus_id }}" name="bus_ids" value="{{ l.bus_id }}" class="row-checkbox infra-checkbox w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-yellow-600 dark:text-brand-gold bg-yellow-50 dark:bg-brand-gold/10 border border-yellow-200 dark:border-brand-gold/20 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-couch"></i> Layout</span>
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-1.5 text-xs transition-colors"></i>{{ l.operator }}</p>
+                                    <span class="text-xs font-mono text-yellow-600 dark:text-brand-gold transition-colors">{{ l.bus_number }}</span>
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ l.bus_type }}</p>
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-500 mt-1 mb-2 transition-colors">Capacity: {{ l.seats }} Seats</p>
+                                    <a href="{{ url_for('admin_view_seat_layout', bus_id=l.bus_id) }}" class="inline-flex items-center gap-1.5 text-[10px] bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white border border-blue-200 dark:border-transparent px-2 py-1 rounded transition-colors"><i class="fa-solid fa-eye"></i> Inspect Layout</a>
+                                </td>
+                                <td class="p-4 align-top pt-6 min-w-[250px]">
+                                    {% if l.operator_remarks %}
+                                        <p class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/5 p-2 rounded italic transition-colors">"{{ l.operator_remarks }}"</p>
+                                    {% else %}
+                                        <p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                            {% if pending_routes|length == 0 and pending_layouts|length == 0 %}
+                            <tr><td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No pending infrastructure requests.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-6 pb-2 border-t border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/10 transition-colors">
+                    <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest transition-colors"><i class="fa-solid fa-calendar-days text-purple-600 dark:text-brand-purple mr-2 transition-colors"></i> Part 2: Operations (Trips)</h4>
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full min-w-[1000px] text-left">
+                        <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                            <tr>
+                                <th class="p-4 w-12 text-center">
+                                    <label for="selectAllTrips" class="sr-only">Select All Trips</label>
+                                    <input type="checkbox" id="selectAllTrips" onchange="document.querySelectorAll('.trip-checkbox').forEach(cb => cb.checked = this.checked)" class="w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                                </th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Request Type</th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Operator & ID</th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Core Details</th>
+                                <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Operator Note</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                            {% for s in pending_schedules %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td class="p-4 text-center align-top pt-6">
+                                    <label for="schedule_id_{{ s.display_id }}" class="sr-only">Select Trip</label>
+                                    <input type="checkbox" id="schedule_id_{{ s.display_id }}" name="schedule_ids" value="{{ s.ids }}" class="row-checkbox trip-checkbox w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-brand-purple bg-purple-50 dark:bg-brand-purple/10 border border-purple-200 dark:border-brand-purple/20 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-calendar-check"></i> Trip</span>
+                                    {% if s.is_batch %}<br><span class="inline-block mt-2 text-[9px] font-bold text-purple-600 dark:text-brand-purple bg-purple-50 dark:bg-brand-purple/10 px-1.5 py-0.5 rounded uppercase border border-purple-200 dark:border-transparent transition-colors">Batch</span>{% endif %}
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-1.5 text-xs transition-colors"></i>{{ s.operator }}</p>
+                                    <span class="text-xs font-mono text-gray-500 dark:text-gray-400 transition-colors">TRIP-{{ s.display_id }}</span><br>
+                                    <span class="text-[10px] text-yellow-700 dark:text-brand-gold font-mono transition-colors">{{ s.bus }} ({{ s.bus_type }} • {{ s.total_seats }} Seats)</span><br>
+
+                                    <div class="mt-2 bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 p-2 rounded inline-block w-full transition-colors">
+                                        {% if s.seater_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Seater Rate: ₹ {{ "%.2f"|format(s.seater_price) }}</span>{% endif %}
+                                        {% if s.sleeper_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Sleeper Rate: ₹ {{ "%.2f"|format(s.sleeper_price) }}</span>{% endif %}
+                                        {% if s.ladies_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Ladies Rate: ₹ {{ "%.2f"|format(s.ladies_price) }}</span>{% endif %}
+                                        {% if not s.seater_price and not s.sleeper_price and not s.ladies_price %}
+                                            <span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Base Fare: ₹ {{ "%.2f"|format(s.price) }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="p-4 align-top pt-6">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ s.source }} <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-600 text-[10px] mx-1 transition-colors"></i> {{ s.destination }}</p>
+                                    <p class="text-[10px] text-yellow-700 dark:text-brand-gold mt-1 transition-colors">{{ "%.2f"|format(s.distance) }} KM</p>
+
+                                    <div class="mt-2 bg-gray-100 dark:bg-black/40 p-2 rounded border border-gray-200 dark:border-white/5 inline-block transition-colors">
+                                        <p class="text-[11px] text-gray-700 dark:text-gray-300 font-mono transition-colors"><i class="fa-regular fa-calendar text-purple-600 dark:text-brand-purple mr-1 transition-colors"></i> {{ s.date }}</p>
+                                        <p class="text-[11px] text-gray-900 dark:text-white font-mono mt-1 transition-colors"><i class="fa-regular fa-clock text-purple-600 dark:text-brand-purple mr-1 transition-colors"></i> {{ s.timings }}</p>
+                                    </div>
+
+                                    <p class="text-[9px] text-blue-600 dark:text-brand-blue uppercase font-bold mt-2 transition-colors">{{ s.pattern }}</p>
+                                </td>
+                                <td class="p-4 align-top pt-6 min-w-[250px]">
+                                    {% if s.operator_remarks %}
+                                        <p class="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/5 p-2 rounded italic transition-colors">"{{ s.operator_remarks }}"</p>
+                                    {% else %}
+                                        <p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No pending trip requests.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- Global History Tab -->
+    <div id="tab-registry" class="tab-content hidden animate-slide-up" style="animation-delay: 0.1s;">
+
+        <div class="glass-card overflow-hidden mb-8 transition-colors">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-server text-purple-600 dark:text-brand-purple mr-2 transition-colors"></i> Global Operations History</h3>
+
+                <form method="GET" action="{{ url_for('admin_approval_hub') }}" class="w-full md:w-auto flex flex-col sm:flex-row gap-3 relative">
+                    <input type="hidden" name="tab" value="registry">
+
+                    <label for="statusFilter" class="sr-only">Filter by Status</label>
+                    <select name="status_filter" id="statusFilter" class="bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm rounded-xl py-2 px-3 outline-none focus:border-purple-600 dark:focus:border-brand-purple transition-colors cursor-pointer w-full sm:w-44 shadow-sm" onchange="this.form.submit()">
+                        {% if status_filter == 'history' or not status_filter %}<option value="history" selected>Finalized Only</option>{% else %}<option value="history">Finalized Only</option>{% endif %}
+                        {% if status_filter == 'all' %}<option value="all" selected>All Statuses</option>{% else %}<option value="all">All Statuses</option>{% endif %}
+                        {% if status_filter == 'pending' %}<option value="pending" selected>Pending Only</option>{% else %}<option value="pending">Pending Only</option>{% endif %}
+                        {% if status_filter == 'approved' %}<option value="approved" selected>Approved / Active</option>{% else %}<option value="approved">Approved / Active</option>{% endif %}
+                        {% if status_filter == 'rejected' %}<option value="rejected" selected>Rejected Only</option>{% else %}<option value="rejected">Rejected Only</option>{% endif %}
+                    </select>
+
+                    <div class="relative w-full sm:w-64 md:w-72">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm transition-colors"></i>
+                        <label for="registry_search" class="sr-only">Search History</label>
+                        <input type="text" name="search" id="registry_search" value="{{ search_query }}" placeholder="Search global history..." class="bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm rounded-xl py-2 pl-9 pr-8 focus:border-purple-600 dark:focus:border-brand-purple outline-none transition-colors w-full shadow-sm dark:shadow-inner">
+                        {% if search_query or status_filter not in ['history', '', none] %}
+                            <a href="{{ url_for('admin_approval_hub', tab='registry') }}" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors" title="Clear Filters"><i class="fa-solid fa-xmark"></i></a>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="hidden"></button>
+                </form>
+            </div>
+
+            <div class="p-6 pb-2 border-b border-gray-200 dark:border-white/5 transition-colors">
+                <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest transition-colors"><i class="fa-solid fa-road text-yellow-600 dark:text-brand-gold mr-2 transition-colors"></i> Part 1: Infrastructure History</h4>
+            </div>
+            <div class="overflow-x-auto w-full max-h-[400px] overflow-y-auto mb-6">
+                <table class="w-full min-w-[1000px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Type</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Operator & ID</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Core Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Feedback & Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+
+                        {% if status_filter == 'approved' %}
+                            {% set filtered_routes = routes | selectattr('status', 'equalto', 1) | list %}
+                        {% elif status_filter == 'rejected' %}
+                            {% set filtered_routes = routes | selectattr('status', 'equalto', 2) | list %}
+                        {% elif status_filter == 'pending' %}
+                            {% set filtered_routes = routes | selectattr('status', 'equalto', 0) | list %}
+                        {% elif status_filter == 'all' %}
+                            {% set filtered_routes = routes %}
+                        {% else %}
+                            {% set filtered_routes = routes | rejectattr('status', 'equalto', 0) | list %}
+                        {% endif %}
+
+                        {% for r in filtered_routes %}
+                        {% set row_class = "opacity-50" if r.status == 2 else "" %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors {{ row_class }}">
+                            <td class="p-4 align-top pt-6">
+                                <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-brand-red bg-red-50 dark:bg-brand-red/10 border border-red-200 dark:border-brand-red/20 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-route"></i> Route</span>
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-1.5 text-xs transition-colors"></i>{{ r.operator_name }}</p>
+                                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 transition-colors">RT-{{ r.id }}</span>
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <div class="flex items-center gap-3 mb-1">
+                                    <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.source }}</span>
+                                    <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-600 text-xs transition-colors"></i>
+                                    <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.destination }}</span>
+                                </div>
+                                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono transition-colors">{{ r.distance }} KM</span>
+                            </td>
+                            <td class="p-4 text-center align-top pt-6">
+                                {% if r.status == 1 %}<span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">Active</span>
+                                {% elif r.status == 2 %}<span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(248,113,113,0.2)] transition-colors">Rejected</span>
+                                {% elif r.status == 0 %}<span class="text-[9px] font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest border border-yellow-200 dark:border-brand-gold/30 bg-yellow-50 dark:bg-brand-gold/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(250,204,21,0.2)] transition-colors">Pending</span>{% endif %}
+                            </td>
+                            <td class="p-4 align-top min-w-[250px] pt-6">
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-[9px] text-purple-600 dark:text-brand-purple font-bold uppercase tracking-widest mb-1 transition-colors">Admin Feedback</p>
+                                        {% if r.feedback %}<p class="text-xs text-gray-800 dark:text-gray-300 italic transition-colors">"{{ r.feedback }}"</p>{% else %}<p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>{% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] text-gray-500 dark:text-gray-500 font-bold uppercase tracking-widest mb-1 transition-colors">Operator Note</p>
+                                        {% if r.operator_remarks %}<p class="text-xs text-gray-700 dark:text-gray-400 italic bg-gray-100 dark:bg-white/5 p-2 rounded transition-colors">"{{ r.operator_remarks }}"</p>{% else %}<p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>{% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% if status_filter == 'approved' %}
+                            {% set filtered_layouts = layouts | selectattr('status', 'equalto', 2) | list %}
+                        {% elif status_filter == 'rejected' %}
+                            {% set filtered_layouts = layouts | selectattr('status', 'equalto', 3) | list %}
+                        {% elif status_filter == 'pending' %}
+                            {% set filtered_layouts = layouts | selectattr('status', 'equalto', 1) | list %}
+                        {% elif status_filter == 'all' %}
+                            {% set filtered_layouts = layouts %}
+                        {% else %}
+                            {% set filtered_layouts = layouts | rejectattr('status', 'equalto', 1) | list %}
+                        {% endif %}
+
+                        {% for l in filtered_layouts %}
+                        {% set row_class = "opacity-50" if l.status == 3 else "" %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors {{ row_class }}">
+                            <td class="p-4 align-top pt-6">
+                                <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-yellow-600 dark:text-brand-gold bg-yellow-50 dark:bg-brand-gold/10 border border-yellow-200 dark:border-brand-gold/20 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-couch"></i> Layout</span>
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-1.5 text-xs transition-colors"></i>{{ l.operator }}</p>
+                                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 transition-colors">BUS-{{ l.bus_id }}</span>
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ l.bus_number }}</p>
+                                <p class="text-[10px] text-yellow-700 dark:text-brand-gold uppercase mt-1 transition-colors">{{ l.bus_type }} • {{ l.seats }} Seats</p>
+                            </td>
+                            <td class="p-4 text-center align-top pt-6">
+                                {% if l.status == 2 %}<span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">Approved</span>
+                                {% elif l.status == 3 %}<span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(248,113,113,0.2)] transition-colors">Rejected</span>
+                                {% elif l.status == 1 %}<span class="text-[9px] font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest border border-yellow-200 dark:border-brand-gold/30 bg-yellow-50 dark:bg-brand-gold/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(250,204,21,0.2)] transition-colors">Pending</span>{% endif %}
+                            </td>
+                            <td class="p-4 align-top min-w-[250px] pt-6">
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-[9px] text-purple-600 dark:text-brand-purple font-bold uppercase tracking-widest mb-1 transition-colors">Admin Feedback</p>
+                                        {% if l.feedback %}<p class="text-xs text-gray-800 dark:text-gray-300 italic transition-colors">"{{ l.feedback }}"</p>{% else %}<p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>{% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] text-gray-500 dark:text-gray-500 font-bold uppercase tracking-widest mb-1 transition-colors">Operator Note</p>
+                                        {% if l.operator_remarks %}<p class="text-xs text-gray-700 dark:text-gray-400 italic bg-gray-100 dark:bg-white/5 p-2 rounded transition-colors">"{{ l.operator_remarks }}"</p>{% else %}<p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>{% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% if not filtered_routes and not filtered_layouts %}
+                        <tr><td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No infrastructure data found matching your filters.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-6 pb-2 border-t border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/10 transition-colors">
+                <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest transition-colors"><i class="fa-solid fa-calendar-days text-purple-600 dark:text-brand-purple mr-2 transition-colors"></i> Part 2: Operations History</h4>
+            </div>
+            <div class="overflow-x-auto w-full max-h-[400px] overflow-y-auto">
+                <table class="w-full min-w-[1000px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Type</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Operator & ID</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Core Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Feedback & Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% if status_filter == 'approved' %}
+                            {% set filtered_schedules = schedules | selectattr('status', 'equalto', 1) | list %}
+                        {% elif status_filter == 'rejected' %}
+                            {% set filtered_schedules = schedules | selectattr('status', 'equalto', 2) | list %}
+                        {% elif status_filter == 'pending' %}
+                            {% set filtered_schedules = schedules | selectattr('status', 'equalto', 0) | list %}
+                        {% elif status_filter == 'all' %}
+                            {% set filtered_schedules = schedules %}
+                        {% else %}
+                            {% set filtered_schedules = schedules | rejectattr('status', 'equalto', 0) | list %}
+                        {% endif %}
+
+                        {% for s in filtered_schedules %}
+                        {% set row_class = "opacity-50" if s.status == 2 else "" %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors {{ row_class }}">
+                            <td class="p-4 align-top pt-6">
+                                <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-brand-purple bg-purple-50 dark:bg-brand-purple/10 border border-purple-200 dark:border-brand-purple/20 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-calendar-check"></i> Trip</span>
+                                {% if s.is_batch %}<br><span class="inline-block mt-2 text-[9px] font-bold text-purple-600 dark:text-brand-purple uppercase transition-colors border border-purple-200 dark:border-transparent px-1.5 py-0.5 rounded bg-purple-50 dark:bg-brand-purple/10">Batch</span>{% endif %}
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white mb-1 transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-1.5 text-xs transition-colors"></i>{{ s.operator }}</p>
+                                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 transition-colors">TRIP-{{ s.display_id }}</span><br>
+                                <span class="text-[10px] text-yellow-700 dark:text-brand-gold font-mono transition-colors">{{ s.bus }} ({{ s.bus_type }} • {{ s.total_seats }} Seats)</span><br>
+
+                                <div class="mt-2 bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 p-2 rounded inline-block w-full transition-colors">
+                                    {% if s.seater_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Seater Rate: ₹ {{ "%.2f"|format(s.seater_price) }}</span>{% endif %}
+                                    {% if s.sleeper_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Sleeper Rate: ₹ {{ "%.2f"|format(s.sleeper_price) }}</span>{% endif %}
+                                    {% if s.ladies_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Ladies Rate: ₹ {{ "%.2f"|format(s.ladies_price) }}</span>{% endif %}
+                                    {% if not s.seater_price and not s.sleeper_price and not s.ladies_price %}
+                                        <span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Base Fare: ₹ {{ "%.2f"|format(s.price) }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ s.source }} <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-500 text-[10px] mx-1 transition-colors"></i> {{ s.destination }}</p>
+                                <p class="text-[10px] text-yellow-700 dark:text-brand-gold mt-1 transition-colors">{{ "%.2f"|format(s.distance) }} KM</p>
+
+                                <div class="mt-2 bg-gray-100 dark:bg-black/40 p-2 rounded border border-gray-200 dark:border-white/5 inline-block transition-colors">
+                                    <p class="text-[11px] text-gray-700 dark:text-gray-300 font-mono transition-colors"><i class="fa-regular fa-calendar text-purple-600 dark:text-brand-purple mr-1 transition-colors"></i> {{ s.date }}</p>
+                                    <p class="text-[11px] text-gray-900 dark:text-white font-mono mt-1 transition-colors"><i class="fa-regular fa-clock text-purple-600 dark:text-brand-purple mr-1 transition-colors"></i> {{ s.timings }}</p>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center align-top pt-6">
+                                {% if s.status == 1 %}<span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">Approved</span>
+                                {% elif s.status == 2 %}<span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(248,113,113,0.2)] transition-colors">Rejected</span>
+                                {% elif s.status == 0 %}<span class="text-[9px] font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest border border-yellow-200 dark:border-brand-gold/30 bg-yellow-50 dark:bg-brand-gold/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(250,204,21,0.2)] transition-colors">Pending</span>{% endif %}
+                            </td>
+                            <td class="p-4 align-top min-w-[250px] pt-6">
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-[9px] text-purple-600 dark:text-brand-purple font-bold uppercase tracking-widest mb-1 transition-colors">Admin Feedback</p>
+                                        {% if s.feedback %}<p class="text-xs text-gray-800 dark:text-gray-300 italic transition-colors">"{{ s.feedback }}"</p>{% else %}<p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>{% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] text-gray-500 dark:text-gray-500 font-bold uppercase tracking-widest mb-1 transition-colors">Operator Note</p>
+                                        {% if s.operator_remarks %}<p class="text-xs text-gray-700 dark:text-gray-400 italic bg-gray-100 dark:bg-white/5 p-2 rounded transition-colors">"{{ s.operator_remarks }}"</p>{% else %}<p class="text-[10px] text-gray-400 dark:text-gray-600 italic transition-colors">None</p>{% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No operations data found matching your filters.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- CUSTOM ALERT MODAL -->
+<!-- ========================================== -->
+<div id="custom-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-gray-200 dark:border-white/10 p-6 md:p-8 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col items-center text-center">
+
+        <div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-brand-gold mb-4 shadow-inner">
+            <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+        </div>
+
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Selection Required</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+            Please select at least one item from the queue using the checkboxes before applying a batch action.
+        </p>
+
+        <button type="button" onclick="closeAlertModal()" class="w-full px-6 py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold shadow-lg transition-colors">
+            Understood
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Custom Modal Functions
+    function openAlertModal() {
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeAlertModal() {
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Simplified Tab Switcher Logic letting CSS handle colors
+    function switchTab(tabId) {
+        const validTabs = ['engine', 'registry'];
+        if (!validTabs.includes(tabId)) {
+            tabId = 'engine';
+        }
+
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+        const activeBtn = document.getElementById('btn-' + tabId);
+        activeBtn.classList.add('active');
+
+        window.history.replaceState(null, null, '?tab=' + tabId);
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'engine';
+    switchTab(initialTab);
+
+    // Select All Checkbox Logic
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
+        });
+    }
+
+    // Safety check for the Batch form (Triggers Custom Modal instead of Alert)
+    function validateBatchSubmit() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            openAlertModal();
+            return false;
+        }
+        return true;
+    }
+</script>
+{% endblock %}

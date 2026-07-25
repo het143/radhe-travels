@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}Select Seats | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+    <style>
+        /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+        html, body {
+            background-color: transparent !important;
+        }
+
+        /* 1. HERO BACKGROUND (FULL SCREEN) */
+        .hero-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            pointer-events: none;
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+            /* LIGHT MODE IMAGE (Bright, luxurious leather interior) */
+            background-image: url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=2000&q=80') !important; /* Note: Re-using the premium bus interior vibe */
+        }
+
+        /* Light Mode Overlay */
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(249, 250, 251, 0.4) !important; /* 40% white tint */
+            backdrop-filter: blur(8px) !important; /* Smooth blur so the seat grid is clear */
+            transition: background 0.5s ease;
+        }
+
+        /* DARK MODE IMAGE (Moody, sleek dark interior for night travel) */
+        .dark .hero-bg {
+            background-image: url('https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=2000&q=80') !important;
+        }
+
+        /* Dark Mode Overlay */
+        .dark .hero-bg::after {
+            background: rgba(15, 23, 42, 0.6) !important; /* 60% dark slate tint */
+            backdrop-filter: blur(8px) !important;
+        }
+
+        /* Slide-up animations */
+        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* Glass Panel Light/Dark modes */
+        .glass-panel {
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        html:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+        }
+
+        /* ── SEAT STYLES (Matched to Architect) ── */
+        .seat {
+            transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; border-radius: 8px; position: relative; user-select: none;
+            width: 50px; height: 50px; /* Fixed width to match Operator Grid */
+        }
+        .seat:hover:not(.booked):not(.non-bookable) {
+            transform: scale(1.06); z-index: 20;
+        }
+        .dark .seat:hover:not(.booked):not(.non-bookable) { box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+        html:not(.dark) .seat:hover:not(.booked):not(.non-bookable) { box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+
+        /* Dimensions & Colors */
+        .seat-seater { border: 1px solid #10b981; color: #10b981; background: rgba(16, 185, 129, 0.05); }
+        .seat-ladies { border: 1px solid #ec4899; color: #ec4899; background: rgba(236, 72, 153, 0.05); }
+
+        /* Sleeper takes 2 vertical spaces (50px + 10px gap + 50px = 110px) */
+        .seat-sleeper {
+            height: 110px;
+            border: 1px solid #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.15);
+            z-index: 10; align-items: flex-start; padding-top: 15px;
+        }
+
+        /* Non-bookable Elements */
+        .seat-door   { border: 1px solid transparent; color: #f59e0b; background: rgba(245, 158, 11, 0.05); pointer-events: none; }
+        .seat-driver { border: 1px solid #64748b; color: #64748b; background: rgba(100, 116, 139, 0.05); border-radius: 50%; pointer-events: none; }
+        .non-bookable { cursor: default; }
+
+        /* Seat ID Micro-label */
+        .seat-id {
+            position: absolute; font-size: 0.5rem; font-weight: bold; top: 2px; right: 4px;
+            opacity: 0.8; font-family: 'JetBrains Mono', monospace; pointer-events: none;
+        }
+        .dark .seat-id { color: #fff; }
+        html:not(.dark) .seat-id { color: #1e293b; }
+
+        /* ── INTERACTION STATES ── */
+        .selected {
+            border-color: #d84e55 !important; background: rgba(216, 78, 85, 0.2) !important;
+            color: #d84e55 !important; box-shadow: 0 0 15px rgba(216, 78, 85, 0.3);
+        }
+
+        /* Booked State (Light/Dark) */
+        .dark .booked {
+            border-color: #374151 !important; background: #111827 !important; color: transparent !important;
+            cursor: not-allowed; opacity: 0.5;
+        }
+        html:not(.dark) .booked {
+            border-color: #cbd5e1 !important; background: #e2e8f0 !important; color: transparent !important;
+            cursor: not-allowed; opacity: 0.6;
+        }
+
+        /* Render "X" icon for booked seats */
+        .seat.booked::after {
+            content: '\f00d'; font-family: 'Font Awesome 6 Free', sans-serif;
+            font-weight: 900; position: absolute; font-size: 1.2rem; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+        .dark .seat.booked::after { color: #4b5563; }
+        html:not(.dark) .seat.booked::after { color: #94a3b8; }
+
+        /* Bus Layout Container */
+        #bus-layout {
+            display: grid; gap: 10px; padding: 20px;
+            border-radius: 20px; position: relative; margin: 0 auto; width: fit-content;
+            transition: all 0.3s ease;
+        }
+        .dark #bus-layout {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        html:not(.dark) #bus-layout {
+            background: rgba(248, 250, 252, 0.6); border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- FULL SCREEN BACKGROUND -->
+<div class="hero-bg" id="hero-bg"></div>
+
+<div class="max-w-6xl mx-auto px-6 mt-8 pb-20 relative z-10 pt-16">
+
+    <div class="mb-6 flex items-center justify-between animate-slide-up">
+        <a href="{{ url_for('search_bus') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2 text-sm font-bold uppercase tracking-widest backdrop-blur-sm px-3 py-1.5 rounded-lg bg-white/10 dark:bg-black/10 border border-white/20 dark:border-white/5"><i class="fa-solid fa-arrow-left"></i> Back to Search</a>
+        <div class="hidden md:flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 transition-colors backdrop-blur-sm px-4 py-2 rounded-lg bg-white/10 dark:bg-black/10 border border-white/20 dark:border-white/5">
+            <span class="text-brand-red border-b-2 border-brand-red pb-1">1. Seats</span>
+            <div class="w-8 h-px bg-gray-300 dark:bg-white/20 transition-colors"></div>
+            <span>2. Details</span>
+            <div class="w-8 h-px bg-gray-300 dark:bg-white/20 transition-colors"></div>
+            <span>3. Payment</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-slide-up" style="animation-delay: 0.1s;">
+
+        <div class="lg:col-span-2 glass-panel rounded-3xl p-6 md:p-10 flex flex-col items-center transition-colors">
+
+            <div class="w-full flex justify-between items-center mb-6 border-b border-gray-200 dark:border-white/10 pb-4 transition-colors">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{{ schedule.source }} <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-500 mx-2 text-sm transition-colors"></i> {{ schedule.destination }}</h2>
+                    <p class="text-yellow-600 dark:text-brand-gold font-mono text-sm mt-1 transition-colors"><i class="fa-solid fa-bus mr-1"></i> {{ schedule.bus_number }} • {{ schedule.date }} at {{ schedule.time }}</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-4 mb-8 justify-center">
+                <div class="flex items-center gap-1.5"><div class="w-4 h-4 rounded border border-[#10b981] bg-[#10b981]/10"></div><span class="text-[10px] uppercase font-bold text-gray-600 dark:text-gray-300">Seater</span></div>
+                <div class="flex items-center gap-1.5"><div class="w-4 h-4 rounded border border-[#8b5cf6] bg-[#8b5cf6]/10"></div><span class="text-[10px] uppercase font-bold text-gray-600 dark:text-gray-300">Sleeper</span></div>
+                <div class="flex items-center gap-1.5"><div class="w-4 h-4 rounded border border-[#ec4899] bg-[#ec4899]/10"></div><span class="text-[10px] uppercase font-bold text-gray-600 dark:text-gray-300">Ladies</span></div>
+                <div class="flex items-center gap-1.5"><div class="w-4 h-4 rounded border border-brand-red bg-brand-red/20"></div><span class="text-[10px] uppercase font-bold text-gray-600 dark:text-gray-300">Selected</span></div>
+                <div class="flex items-center gap-1.5"><div class="w-4 h-4 rounded border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-800 flex items-center justify-center"><i class="fa-solid fa-xmark text-[8px] text-gray-500 dark:text-gray-400"></i></div><span class="text-[10px] uppercase font-bold text-gray-600 dark:text-gray-300">Booked</span></div>
+            </div>
+
+            <div class="flex items-center justify-between w-full max-w-[350px] text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 px-1 mb-2 transition-colors">
+                <span class="flex items-center gap-1.5"></span>
+                <span class="flex items-center gap-1.5">Right Side Front <i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+
+            <div class="overflow-x-auto w-full flex justify-center pb-4">
+                <div id="bus-layout" class="shadow-xl dark:shadow-2xl">
+                    <!-- Javascript will render the bus here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="glass-panel rounded-3xl p-6 md:p-8 sticky top-24 transition-colors">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-white/10 pb-4 mb-6 transition-colors"><i class="fa-solid fa-receipt text-yellow-500 dark:text-brand-gold mr-2 transition-colors"></i> Journey Summary</h3>
+
+                <div class="space-y-4 mb-6">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-gray-300 text-sm transition-colors font-medium">Operator Type</span>
+                        <span class="font-bold text-gray-900 dark:text-white transition-colors">{{ schedule.bus_type }}</span>
+                    </div>
+
+                    {% if seat_prices %}
+                        {% if 'seater' in seat_prices %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400 text-sm transition-colors"><i class="fa-solid fa-chair text-[#10b981] mr-1"></i> Seater Fare</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-sm transition-colors">₹ {{ "%.2f"|format(seat_prices['seater']) }}</span>
+                        </div>
+                        {% endif %}
+                        {% if 'sleeper' in seat_prices %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400 text-sm transition-colors"><i class="fa-solid fa-bed text-[#8b5cf6] mr-1"></i> Sleeper Fare</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-sm transition-colors">₹ {{ "%.2f"|format(seat_prices['sleeper']) }}</span>
+                        </div>
+                        {% endif %}
+                        {% if 'ladies' in seat_prices %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400 text-sm transition-colors"><i class="fa-solid fa-person-dress text-[#ec4899] mr-1"></i> Ladies Fare</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-sm transition-colors">₹ {{ "%.2f"|format(seat_prices['ladies']) }}</span>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400 text-sm transition-colors">Base Fare</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-sm transition-colors">₹ {{ schedule.base_price }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="bg-gray-100 dark:bg-black/30 rounded-xl p-4 mb-6 border border-gray-200 dark:border-white/5 transition-colors shadow-inner">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2 transition-colors">Selected Seats</p>
+                    <p id="selected-seats-display" class="font-mono text-yellow-600 dark:text-brand-gold font-bold text-lg transition-colors">None</p>
+                </div>
+
+                <div class="flex justify-between items-end mb-8 border-t border-gray-200 dark:border-white/10 pt-6 transition-colors">
+                    <span class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-widest transition-colors">Total Amount</span>
+                    <span id="total-amount-display" class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors drop-shadow-sm">₹ 0</span>
+                </div>
+
+                <form method="POST" action="{{ url_for('booking') }}" id="checkout-form">
+                    <input type="hidden" name="schedule_id" value="{{ schedule.id }}">
+                    <input type="hidden" name="seat_numbers" id="seat-numbers-input" value="">
+                    <input type="hidden" name="total_amount" id="total-amount-input" value="0">
+
+                    <button type="button" onclick="proceedToPayment()" id="checkout-btn" class="w-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-sm dark:shadow-lg flex items-center justify-center gap-2" disabled>
+                        <span>Select a Seat</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Subtle Mouse Parallax
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        if (!bg) return;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 90;
+        const dy = (cy - e.pageY) / 90;
+        bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+
+    const layoutData = {{ layout_data|tojson }};
+    const bookedSeats = {{ booked_seats|tojson }};
+
+    let selectedSeats = [];
+    let totalAmount = 0;
+
+    const ICON = {
+        seater:  '<i class="fa-solid fa-chair"></i>',
+        sleeper: '<i class="fa-solid fa-bed"></i>',
+        ladies:  '<i class="fa-solid fa-person-dress"></i>',
+        driver:  '<i class="fa-solid fa-dharmachakra"></i>',
+        door:    '<i class="fa-solid fa-door-open"></i>'
+    };
+
+    function renderBus() {
+        const container = document.getElementById('bus-layout');
+
+        if (!layoutData || layoutData.length === 0) {
+            container.innerHTML = "<p class='text-gray-500 py-10 px-4'>Bus layout not configured by operator.</p>";
+            container.style.border = "none";
+            container.style.background = "transparent";
+            container.style.boxShadow = "none";
+            return;
+        }
+
+        let maxRow = 0;
+        let maxCol = 0;
+        layoutData.forEach(seat => {
+            if (seat.row > maxRow) maxRow = seat.row;
+            if (seat.col > maxCol) maxCol = seat.col;
+        });
+
+        // Fixed at 50px increments to perfectly match the CSS dimensions
+        container.style.gridTemplateRows = `repeat(${maxRow + 1}, 50px)`;
+        container.style.gridTemplateColumns = `repeat(${maxCol + 1}, 50px)`;
+
+        layoutData.forEach(seat => {
+            if (seat.type === 'erase' || seat.type === 'empty' || seat.type === 'aisle') return;
+
+            const seatDiv = document.createElement('div');
+            seatDiv.className = `seat seat-${seat.type}`;
+
+            seatDiv.style.gridRow = seat.row + 1;
+            seatDiv.style.gridColumn = seat.col + 1;
+
+            let innerHTML = ICON[seat.type] || '';
+            if (seat.id) {
+                innerHTML += `<span class="seat-id">${seat.id}</span>`;
+            }
+            seatDiv.innerHTML = innerHTML;
+
+            if (['seater', 'sleeper', 'ladies'].includes(seat.type)) {
+                seatDiv.dataset.id = seat.id;
+                seatDiv.dataset.price = seat.price;
+
+                if (bookedSeats.includes(seat.id)) {
+                    seatDiv.classList.add('booked');
+                } else {
+                    seatDiv.classList.add('available');
+                    seatDiv.onclick = () => toggleSeat(seatDiv, seat.id, parseFloat(seat.price));
+                }
+            } else {
+                seatDiv.classList.add('non-bookable');
+            }
+
+            container.appendChild(seatDiv);
+        });
+    }
+
+    function toggleSeat(element, seatId, price) {
+        if (element.classList.contains('selected')) {
+            element.classList.remove('selected');
+            selectedSeats = selectedSeats.filter(id => id !== seatId);
+            totalAmount -= price;
+        } else {
+            if (selectedSeats.length >= 6) {
+                alert("You can only select up to 6 seats at a time for a single transaction.");
+                return;
+            }
+            element.classList.add('selected');
+            selectedSeats.push(seatId);
+            totalAmount += price;
+        }
+        updateSummary();
+    }
+
+    function updateSummary() {
+        document.getElementById('selected-seats-display').innerText = selectedSeats.length > 0 ? selectedSeats.join(', ') : 'None';
+        document.getElementById('total-amount-display').innerText = '₹ ' + totalAmount.toFixed(2);
+
+        document.getElementById('seat-numbers-input').value = selectedSeats.join(',');
+        document.getElementById('total-amount-input').value = totalAmount;
+
+        const btn = document.getElementById('checkout-btn');
+        if (selectedSeats.length > 0) {
+            btn.disabled = false;
+            // Active button classes (Same for light and dark)
+            btn.className = "w-full bg-brand-red hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(216,78,85,0.4)] transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1";
+            btn.innerHTML = '<span>Proceed to Passenger Details</span> <i class="fa-solid fa-arrow-right text-xs"></i>';
+        } else {
+            btn.disabled = true;
+            // Disabled button classes (Responsive to light and dark)
+            btn.className = "w-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold py-4 rounded-xl cursor-not-allowed transition-all shadow-sm dark:shadow-lg flex items-center justify-center gap-2";
+            btn.innerHTML = '<span>Select a Seat</span>';
+        }
+    }
+
+    function proceedToPayment() {
+        if (selectedSeats.length > 0) {
+            document.getElementById('checkout-form').submit();
+        }
+    }
+
+    window.onload = renderBus;
+</script>
+{% endblock %}

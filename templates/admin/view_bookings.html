@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Global Bookings{% endblock %}
+
+{% block extra_css %}
+    <style>
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Global Bookings</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Monitor all passenger transactions across the entire network.</p>
+        </div>
+
+        <!-- NEW: Export CSV Button -->
+        <a href="{{ url_for('admin_export_bookings_csv') }}" class="bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 text-xs font-bold px-4 py-2 rounded-lg transition-colors sm:w-auto w-full shadow-sm dark:shadow-none inline-flex items-center justify-center text-center">
+            <i class="fa-solid fa-download mr-2"></i> Export CSV
+        </a>
+    </header>
+
+    <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.1s;">
+        <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-colors">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-ticket text-yellow-600 dark:text-brand-gold mr-2 transition-colors"></i> Master Ledger</h3>
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                <label for="searchInput" class="sr-only">Search Bookings</label>
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search PNR or Passenger..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-yellow-500 dark:focus:border-brand-gold transition-colors shadow-sm dark:shadow-inner">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto w-full max-h-[600px]">
+            <table class="w-full min-w-[1050px] text-left">
+                <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                    <tr>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">PNR</th>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Passenger</th>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Route & Bus</th>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Seats</th>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Amount</th>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Status</th>
+                        <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-center transition-colors">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                    {% for bk in bookings %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                        <td class="p-4 text-sm font-mono text-gray-900 dark:text-white transition-colors">{{ bk.pnr }}</td>
+                        <td class="p-4 text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ bk.passenger }}</td>
+                        <td class="p-4 text-xs text-gray-700 dark:text-gray-300 transition-colors">{{ bk.source }} to {{ bk.destination }}</td>
+                        <td class="p-4 text-xs font-bold text-yellow-700 dark:text-brand-gold transition-colors">{{ bk.seats }}</td>
+                        <td class="p-4 text-sm font-mono text-green-600 dark:text-green-400 font-bold transition-colors">₹{{ bk.amount }}</td>
+                        <td class="p-4 text-xs font-bold">
+                            {% if bk.status == 1 %}
+                                <span class="text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-400/10 px-2 py-1 rounded transition-colors border border-green-200 dark:border-transparent">Confirmed</span>
+                            {% else %}
+                                <span class="text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-400/10 px-2 py-1 rounded transition-colors border border-red-200 dark:border-transparent">Failed/Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            <a href="{{ url_for('admin_view_ticket', booking_id=bk.id) }}" target="_blank" class="inline-flex items-center justify-center bg-gray-200 dark:bg-white/5 hover:bg-yellow-400 dark:hover:bg-brand-gold hover:text-gray-900 dark:hover:text-black text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/10 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm dark:shadow-none">
+                                <i class="fa-solid fa-eye mr-1.5"></i> View Ticket
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No bookings found in the database.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(input) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

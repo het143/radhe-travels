@@ -1,0 +1,211 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Passenger Directory{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20 relative">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Passenger Directory</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Global database of all registered system users.</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4 items-center w-full md:w-auto">
+            <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 flex items-center gap-4 transition-colors shadow-sm dark:shadow-none w-full sm:w-auto">
+                <div>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-bold tracking-widest transition-colors">Total Users</p>
+                    <p class="text-lg font-mono text-purple-600 dark:text-brand-purple font-bold leading-none transition-colors">{{ users|length }}</p>
+                </div>
+            </div>
+
+            <!-- NEW: Export CSV Button -->
+            <a href="{{ url_for('admin_export_users_csv') }}" class="bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 text-xs font-bold px-5 py-3 rounded-xl transition-colors sm:w-auto w-full shadow-sm dark:shadow-none inline-flex items-center justify-center text-center">
+                <i class="fa-solid fa-download mr-2"></i> Export CSV
+            </a>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-xl flex items-center gap-3 transition-colors {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} animate-slide-up shadow-sm">
+                        <i class="fa-solid {% if category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                        <span class="text-sm font-bold">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.1s;">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center flex-wrap gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-users text-purple-600 dark:text-brand-purple mr-2 transition-colors"></i> User Ledger</h3>
+
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                    <label for="searchInput" class="sr-only">Search Ledger</label>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search by Name, Email, or Phone..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-purple-500 dark:focus:border-brand-purple transition-colors shadow-sm dark:shadow-inner">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full max-h-[600px] overflow-y-auto">
+                <table class="w-full min-w-[900px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">User ID</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Passenger Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Demographics</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Contact Info</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Wallet File</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for u in users %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4">
+                                <span class="text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-white/5 px-2 py-1 rounded transition-colors border border-gray-300 dark:border-transparent">UID-{{ u.id }}</span>
+                            </td>
+                            <td class="p-4 flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name={{ u.name | urlencode }}&background=1e293b&color=fff" class="w-8 h-8 rounded-full border border-gray-300 dark:border-white/10 transition-colors" alt="Avatar">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ u.name }}</p>
+                            </td>
+
+                            <td class="p-4">
+                                <p class="text-xs text-gray-900 dark:text-white font-bold transition-colors">{{ u.gender }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest mt-0.5 transition-colors">Age: <span class="text-gray-700 dark:text-gray-300 font-mono transition-colors">{{ u.age }}</span></p>
+                            </td>
+
+                            <td class="p-4">
+                                <p class="text-xs text-gray-900 dark:text-white font-bold transition-colors">{{ u.email }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 font-mono mt-0.5 transition-colors"><i class="fa-solid fa-phone mr-1 text-gray-400 dark:text-gray-600 transition-colors"></i>{{ u.mobile }}</p>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">
+                                    ● Active Node
+                                </span>
+                            </td>
+
+                            <td class="p-4 text-center">
+                                <button type="button" onclick="showWalletModal('{{ u.name|escape }}', '{{ u.upi_provider|escape }}', '{{ u.upi_id|escape }}', '{{ u.name_on_card|escape }}', '{{ u.card_number|escape }}', '{{ u.card_expiry|escape }}', '{{ u.card_cvv|escape }}')" class="bg-yellow-50 dark:bg-brand-gold/10 hover:bg-yellow-400 dark:hover:bg-brand-gold text-yellow-700 dark:text-brand-gold hover:text-gray-900 dark:hover:text-black border border-yellow-300 dark:border-brand-gold/30 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm dark:shadow-none">
+                                    <i class="fa-solid fa-wallet mr-1"></i> View Data
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No registered users found in the system.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden Wallet Modal -->
+    <div id="walletModal" class="fixed inset-0 bg-gray-900/50 dark:bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="glass-card bg-white dark:bg-[rgba(30,41,59,0.9)] p-8 max-w-lg w-full mx-4 border border-gray-200 dark:border-white/10 rounded-2xl relative shadow-2xl transition-colors">
+            <button onclick="closeWalletModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+
+            <div class="mb-6 border-b border-gray-200 dark:border-white/10 pb-4 transition-colors">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 transition-colors"><i class="fa-solid fa-vault text-yellow-600 dark:text-brand-gold transition-colors"></i> Saved Payment Profile</h3>
+                <p id="modalUserName" class="text-xs text-gray-600 dark:text-gray-400 mt-1 uppercase tracking-widest font-bold transition-colors">Passenger Name</p>
+            </div>
+
+            <div class="space-y-6">
+
+                <div class="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 p-4 rounded-xl transition-colors">
+                    <p class="text-[10px] text-purple-600 dark:text-brand-purple uppercase tracking-widest font-bold mb-3 border-b border-gray-200 dark:border-white/5 pb-2 transition-colors"><i class="fa-brands fa-google-pay mr-1 text-sm align-middle"></i> Primary UPI</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[9px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Provider</p>
+                            <p class="text-sm text-gray-900 dark:text-white font-bold transition-colors" id="modalUpiProv">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">UPI ID</p>
+                            <p class="text-sm text-gray-900 dark:text-white font-mono transition-colors" id="modalUpiId">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 p-4 rounded-xl transition-colors">
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-widest font-bold mb-3 border-b border-gray-200 dark:border-white/5 pb-2 transition-colors"><i class="fa-regular fa-credit-card mr-1 text-sm align-middle"></i> Saved Credit / Debit Card</p>
+
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-[9px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Name on Card</p>
+                            <p class="text-sm text-gray-900 dark:text-white font-bold uppercase tracking-widest transition-colors" id="modalCardName">Loading...</p>
+                        </div>
+
+                        <div>
+                            <p class="text-[9px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Card Number</p>
+                            <p class="text-lg text-yellow-600 dark:text-brand-gold font-mono tracking-[0.2em] transition-colors" id="modalCardNum">Loading...</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-[9px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Expiry Date</p>
+                                <p class="text-sm text-gray-900 dark:text-white font-mono transition-colors" id="modalCardExp">Loading...</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Security (CVV)</p>
+                                <p class="text-sm text-gray-900 dark:text-white font-mono tracking-widest transition-colors" id="modalCardCvv">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-gray-200 dark:border-white/5 text-center flex items-center justify-between transition-colors">
+                <span class="text-[9px] text-gray-500 dark:text-gray-600 uppercase font-bold tracking-widest transition-colors"><i class="fa-solid fa-lock mr-1"></i> Data Encrypted</span>
+                <button onclick="closeWalletModal()" class="bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-800 dark:text-white font-bold px-6 py-2 rounded-xl transition-colors text-sm">Close File</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Real-time Search Filter
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+
+        rows.forEach(row => {
+            const rowText = row.innerText.toLowerCase();
+            row.style.display = rowText.includes(input) ? '' : 'none';
+        });
+    }
+
+    // Modal control functions
+    function showWalletModal(name, upiProv, upiId, cardName, cardNum, cardExp, cardCvv) {
+        document.getElementById('modalUserName').innerText = name;
+
+        document.getElementById('modalUpiProv').innerText = upiProv;
+        document.getElementById('modalUpiId').innerText = upiId;
+
+        document.getElementById('modalCardName').innerText = cardName;
+        document.getElementById('modalCardNum').innerText = cardNum;
+        document.getElementById('modalCardExp').innerText = cardExp;
+        document.getElementById('modalCardCvv').innerText = cardCvv;
+
+        document.getElementById('walletModal').classList.remove('hidden');
+    }
+
+    function closeWalletModal() {
+        document.getElementById('walletModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Route Discovery | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (FULL SCREEN) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        pointer-events: none;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Breathtaking winding scenic route) */
+        background-image: url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Light Mode Overlay */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.4) !important; /* 40% white tint */
+        backdrop-filter: blur(6px) !important; /* Soft blur */
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Moody night route with light trails) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1485291571150-772bcfc10da5?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.65) !important; /* 65% dark slate tint */
+        backdrop-filter: blur(6px) !important;
+    }
+
+    /* Route Card Glassmorphism */
+    .route-card {
+        backdrop-filter: blur(16px);
+        border-radius: 20px; transition: all 0.3s; position: relative; overflow: hidden;
+    }
+
+    .dark .route-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    html:not(.dark) .route-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .route-card:hover { transform: translateY(-5px); border-color: rgba(251, 191, 36, 0.5); }
+    .dark .route-card:hover { box-shadow: 0 15px 30px -10px rgba(0,0,0,0.6); }
+    html:not(.dark) .route-card:hover { box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1); }
+
+    /* Decorative FontAwesome Icon inside the card */
+    .route-card::before {
+        content: '\f279'; font-family: 'Font Awesome 6 Free', serif; font-weight: 900;
+        position: absolute; right: -20px; top: -20px; font-size: 8rem;
+        pointer-events: none; transition: all 0.5s; transform: rotate(-15deg);
+    }
+    .dark .route-card::before { color: rgba(255,255,255,0.02); }
+    html:not(.dark) .route-card::before { color: rgba(0,0,0,0.02); }
+
+    .route-card:hover::before { color: rgba(251, 191, 36, 0.05); transform: rotate(0deg) scale(1.1); }
+
+    /* Royal Input Fields */
+    .royal-input {
+        padding: 12px 16px; border-radius: 12px; width: 100%;
+        transition: all 0.3s; font-size: 0.85rem; outline: none;
+    }
+
+    .dark .royal-input { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; }
+    .dark .royal-input:focus { border-color: #fbbf24; background: rgba(0,0,0,0.6); }
+
+    html:not(.dark) .royal-input { background: white; border: 1px solid #e2e8f0; color: #0f172a; }
+    html:not(.dark) .royal-input:focus { border-color: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,0.1); }
+
+    /* Date picker dark mode inversion */
+    ::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+    .dark ::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- FULL SCREEN BACKGROUND -->
+<div class="hero-bg" id="hero-bg"></div>
+
+<!-- MAIN CONTENT WRAPPER -->
+<div class="relative z-10 pt-24 px-6 pb-20">
+
+    <!-- HEADER SECTION -->
+    <div class="max-w-5xl mx-auto text-center mb-16 animate-slide-up">
+        <span class="inline-block px-4 py-1.5 rounded-full bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-300 dark:border-brand-gold/30 text-yellow-600 dark:text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-6 transition-colors backdrop-blur-sm">
+            Global Network
+        </span>
+        <h1 class="text-4xl md:text-6xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-4 drop-shadow-md dark:drop-shadow-lg transition-colors">
+            Discover Royal Corridors.
+        </h1>
+        <p class="text-gray-700 dark:text-gray-300 text-base md:text-lg max-w-2xl mx-auto drop-shadow-sm transition-colors font-medium">
+            Explore our active inter-city routes. Select your travel date directly on any route card to instantly find available premium fleets.
+        </p>
+    </div>
+
+    <!-- CARDS SECTION -->
+    <div class="max-w-7xl mx-auto animate-slide-up" style="animation-delay: 0.1s;">
+
+        <div class="flex justify-between items-end mb-8 px-2">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors drop-shadow-sm"><i class="fa-solid fa-map-location-dot text-yellow-500 dark:text-brand-gold mr-2"></i> Active Destinations</h2>
+            <p class="text-xs font-mono font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest transition-colors bg-gray-200 dark:bg-black/30 px-3 py-1 rounded-lg">{{ routes|length }} Routes Online</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+
+            {% for route in routes %}
+            <div class="route-card p-6 flex flex-col justify-between h-full">
+
+                <div class="mb-6 relative z-10">
+                    <div class="flex justify-between items-start mb-5">
+                        <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-[10px] text-gray-600 dark:text-gray-300 font-mono tracking-widest font-bold transition-colors">
+                            ID: {{ route.id }}
+                        </div>
+                        <div class="text-[10px] font-bold text-yellow-600 dark:text-brand-gold bg-yellow-50 dark:bg-brand-gold/10 px-2 py-1 rounded border border-yellow-200 dark:border-brand-gold/20 transition-colors">
+                            {{ route.distance }} KM
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors">{{ route.source }}</h3>
+                    <div class="my-3 flex items-center gap-2 text-gray-400 dark:text-gray-500">
+                        <i class="fa-solid fa-arrow-down text-[10px]"></i>
+                        <div class="flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-600 transition-colors"></div>
+                        <i class="fa-solid fa-location-dot text-brand-red text-[10px]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors">{{ route.destination }}</h3>
+                </div>
+
+                <div class="mt-auto border-t border-gray-200 dark:border-white/10 pt-5 relative z-10 transition-colors">
+                    <form method="POST" action="{{ url_for('search_bus') }}" class="flex flex-col gap-3">
+                        <input type="hidden" name="source" value="{{ route.source }}">
+                        <input type="hidden" name="destination" value="{{ route.destination }}">
+
+                        <div class="relative group">
+                            <i class="fa-regular fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-hover:text-yellow-600 dark:group-hover:text-brand-gold transition-colors z-10 pointer-events-none"></i>
+
+                            <label for="route_date_{{ route.id }}" class="sr-only">Select Travel Date</label>
+                            <input type="date" id="route_date_{{ route.id }}" name="date" required class="royal-input pl-10 cursor-pointer text-gray-700 dark:text-gray-300" min="{{ today }}" title="Select Travel Date" onclick="this.showPicker()">
+                        </div>
+
+                        <button type="submit" class="w-full bg-gray-200 dark:bg-white/10 hover:bg-yellow-400 dark:hover:bg-brand-gold text-gray-800 dark:text-white hover:text-gray-900 hover:dark:text-black text-xs font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1 shadow-sm">
+                            Find Buses <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+            {% else %}
+            <div class="col-span-full py-20 text-center route-card border-dashed border-2 border-gray-300 dark:border-white/10 transition-colors shadow-sm">
+                <div class="w-20 h-20 bg-gray-200 dark:bg-white/5 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 mx-auto mb-6 text-3xl transition-colors">
+                    <i class="fa-solid fa-road-barrier"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">No Routes Available</h3>
+                <p class="text-gray-600 dark:text-gray-400 text-sm transition-colors max-w-sm mx-auto">System administrators are currently deploying new routes. Please check back later.</p>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Subtle Mouse Parallax to match the rest of the site
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        if (!bg) return;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 90;
+        const dy = (cy - e.pageY) / 90;
+        bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+</script>
+{% endblock %}

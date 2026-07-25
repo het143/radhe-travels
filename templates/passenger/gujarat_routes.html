@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Gujarat Network Map{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Responsive Hero Background */
+    .hero-bg {
+        background-size: cover; background-position: center; background-attachment: fixed;
+        transition: all 0.3s ease;
+    }
+
+    .dark .hero-bg {
+        background-image: radial-gradient(circle at 50% 0%, rgba(216, 78, 85, 0.15), transparent 50%), linear-gradient(to bottom, rgba(2, 6, 23, 0.8), #020617), url('https://images.unsplash.com/photo-1588614959060-4d144f28b207?q=80&w=2078');
+    }
+
+    html:not(.dark) .hero-bg {
+        background-image: radial-gradient(circle at 50% 0%, rgba(216, 78, 85, 0.05), transparent 50%), linear-gradient(to bottom, rgba(249, 250, 251, 0.8), #f9fafb), url('https://images.unsplash.com/photo-1588614959060-4d144f28b207?q=80&w=2078');
+    }
+
+    /* Glass Cards */
+    .glass-card {
+        backdrop-filter: blur(16px);
+        border-radius: 24px; transition: all 0.3s;
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .glass-card:hover { border-color: rgba(216, 78, 85, 0.3); }
+    .dark .glass-card:hover { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+    html:not(.dark) .glass-card:hover { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); }
+
+    /* Map Container */
+    .map-container { position: relative; border-radius: 20px; overflow: hidden; transition: all 0.3s ease; }
+
+    .dark .map-container { border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); }
+    html:not(.dark) .map-container { border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); }
+
+    .map-container img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; mix-blend-mode: luminosity; transition: all 0.5s; }
+    .map-container:hover img { opacity: 1; mix-blend-mode: normal; transform: scale(1.02); }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-bg pt-20 pb-16 px-6 border-b border-gray-200 dark:border-white/5 animate-slide-up transition-colors">
+    <div class="max-w-4xl mx-auto text-center">
+        <span class="inline-block px-4 py-1.5 rounded-full bg-red-100 dark:bg-brand-red/10 border border-red-200 dark:border-brand-red/30 text-red-600 dark:text-brand-red text-[10px] font-bold uppercase tracking-widest mb-6 transition-colors">
+            Coverage Area
+        </span>
+        <h1 class="text-4xl md:text-6xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-4 drop-shadow-md dark:drop-shadow-lg transition-colors">
+            The Gujarat Network.
+        </h1>
+        <p class="text-gray-600 dark:text-gray-300 text-sm md:text-base max-w-2xl mx-auto drop-shadow transition-colors">
+            Connecting Saurashtra, Central Gujarat, and the South. Our Royal Fleet covers over 15,000 kilometers of state highways every single day.
+        </p>
+    </div>
+</div>
+
+<div class="container mx-auto px-6 py-16 animate-slide-up" style="animation-delay: 0.1s;">
+    <div class="max-w-6xl mx-auto pb-20">
+
+        <div class="map-container mb-20 bg-gray-200 dark:bg-gray-900 h-96 md:h-[500px] transition-colors">
+
+            <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074" alt="Gujarat Map Layout">
+
+            <!-- Dynamic Gradient Overlay for Map fading to Background -->
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-50 via-transparent to-transparent dark:from-[#020617] dark:via-transparent dark:to-transparent opacity-90 pointer-events-none transition-colors"></div>
+
+            <div class="absolute bottom-8 left-8 bg-white/80 dark:bg-black/60 backdrop-blur-md border border-gray-200 dark:border-white/10 p-5 rounded-xl shadow-xl dark:shadow-2xl transition-colors">
+                <h3 class="text-gray-900 dark:text-white font-bold mb-3 flex items-center gap-2 transition-colors"><i class="fa-solid fa-tower-cell text-yellow-600 dark:text-brand-gold"></i> Live Network Nodes</h3>
+                <ul class="text-xs text-gray-700 dark:text-gray-400 space-y-2 font-mono transition-colors">
+                    <li><span class="text-green-500 dark:text-green-400 animate-pulse inline-block mr-1 w-2 text-center">●</span> Ahmedabad (HQ)</li>
+                    <li><span class="text-green-500 dark:text-green-400 animate-pulse inline-block mr-1 w-2 text-center" style="animation-delay: 0.2s">●</span> Surat (South Hub)</li>
+                    <li><span class="text-green-500 dark:text-green-400 animate-pulse inline-block mr-1 w-2 text-center" style="animation-delay: 0.4s">●</span> Rajkot (Saurashtra)</li>
+                    <li><span class="text-green-500 dark:text-green-400 animate-pulse inline-block mr-1 w-2 text-center" style="animation-delay: 0.6s">●</span> Vadodara (Central)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-end mb-8 px-2">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-city text-blue-500 dark:text-brand-blue mr-2"></i> Major Transit Hubs</h2>
+            <a href="{{ url_for('search_routes') }}" class="text-xs font-bold text-brand-red hover:text-red-500 dark:hover:text-white transition uppercase tracking-widest">View All Routes <i class="fa-solid fa-arrow-right ml-1"></i></a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-card p-6 border-yellow-300 dark:border-brand-gold/20">
+                <div class="w-12 h-12 bg-yellow-100 dark:bg-brand-gold/10 text-yellow-600 dark:text-brand-gold rounded-xl flex items-center justify-center text-xl mb-4 border border-yellow-200 dark:border-brand-gold/20 transition-colors">
+                    <i class="fa-solid fa-building-flag"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">Ahmedabad</h3>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-3 transition-colors">Central Headquarters</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">The primary node connecting Saurashtra to South Gujarat. Features 4 VIP boarding lounges.</p>
+            </div>
+
+            <div class="glass-card p-6">
+                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-4 border border-blue-200 dark:border-blue-500/20 transition-colors">
+                    <i class="fa-solid fa-gem"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">Surat</h3>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-3 transition-colors">Southern Gateway</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">High-frequency sleeper routes terminating at the diamond city. Specialized express corridors.</p>
+            </div>
+
+            <div class="glass-card p-6">
+                <div class="w-12 h-12 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center text-xl mb-4 border border-red-200 dark:border-red-500/20 transition-colors">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">Rajkot</h3>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-3 transition-colors">Saurashtra Hub</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">The central connection point for Jamnagar, Junagadh, and Somnath bound fleets.</p>
+            </div>
+
+            <div class="glass-card p-6">
+                <div class="w-12 h-12 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center text-xl mb-4 border border-purple-200 dark:border-purple-500/20 transition-colors">
+                    <i class="fa-solid fa-tree-city"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors">Vadodara</h3>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-3 transition-colors">Cultural Capital</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">A major transit point serving heavy daily traffic between Ahmedabad and Surat.</p>
+            </div>
+        </div>
+
+        <div class="mt-20 text-center glass-card p-10 relative overflow-hidden transition-colors border border-gray-200 dark:border-white/10">
+            <div class="absolute -top-20 -right-20 w-64 h-64 bg-brand-red/10 rounded-full blur-3xl pointer-events-none transition-colors"></div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3 relative z-10 transition-colors">Ready to travel across Gujarat?</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-lg mx-auto relative z-10 transition-colors">Experience the Royal Standard on any of our state-wide routes today.</p>
+            <a href="{{ url_for('search_bus') }}" class="inline-block bg-gray-900 text-white dark:bg-white dark:text-black hover:bg-brand-gold hover:text-gray-900 dark:hover:bg-brand-gold dark:hover:text-black font-bold px-8 py-3 rounded-full transition-all shadow-lg relative z-10">
+                Book a Journey
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

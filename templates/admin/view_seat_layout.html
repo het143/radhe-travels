@@ -1,0 +1,254 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Inspect Layout & Pricing{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Grid Container */
+    .grid-container {
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+        padding: 20px; border-radius: 20px; transition: all 0.3s ease;
+    }
+
+    .dark .grid-container {
+        background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    html:not(.dark) .grid-container {
+        background: rgba(248, 250, 252, 0.9); border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+    }
+
+    @media (max-width: 640px) {
+        .grid-container { transform: scale(0.85); transform-origin: top center; }
+    }
+
+    /* Cell Types */
+    .grid-cell {
+        width: 50px; height: 50px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; position: relative; transition: all 0.3s ease;
+    }
+
+    .dark .grid-cell { border: 1px solid #1f2937; background: #0b0f19; }
+    html:not(.dark) .grid-cell { border: 1px solid #e2e8f0; background: #ffffff; }
+
+    /* Specific Cell Styling - Light / Dark */
+    .dark .cell-seater { border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.05); }
+    html:not(.dark) .cell-seater { border-color: #059669; color: #059669; background: rgba(16, 185, 129, 0.1); }
+
+    .dark .cell-ladies { border-color: #ec4899; color: #ec4899; background: rgba(236, 72, 153, 0.05); }
+    html:not(.dark) .cell-ladies { border-color: #db2777; color: #db2777; background: rgba(236, 72, 153, 0.1); }
+
+    .cell-aisle { border-color: transparent !important; background: transparent !important; }
+
+    .dark .cell-door { border-color: #f59e0b; color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+    html:not(.dark) .cell-door { border-color: #d97706; color: #d97706; background: rgba(245, 158, 11, 0.1); }
+
+    .dark .cell-driver { border-color: #64748b; color: #64748b; background: rgba(100, 116, 139, 0.05); border-radius: 50%; }
+    html:not(.dark) .cell-driver { border-color: #475569; color: #475569; background: rgba(100, 116, 139, 0.1); border-radius: 50%; }
+
+    /* MODIFIED: Sleeper takes 2 vertical spaces (50px + 10px gap + 50px = 110px) */
+    .cell-sleeper {
+        height: 110px; z-index: 10; align-items: flex-start; padding-top: 15px;
+    }
+    .dark .cell-sleeper { border-color: #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.15); }
+    html:not(.dark) .cell-sleeper { border-color: #7c3aed; color: #7c3aed; background: rgba(139, 92, 246, 0.2); }
+
+    .seat-id {
+        position: absolute; font-size: 0.5rem; font-weight: bold;
+        top: 2px; right: 4px; opacity: 0.8;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .dark .seat-id { color: #fff; opacity: 0.6; }
+    html:not(.dark) .seat-id { color: #000; opacity: 0.5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-6xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-8 animate-slide-up">
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('admin_approval_hub', tab='layouts') }}" class="w-10 h-10 bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 rounded-full flex items-center justify-center text-gray-700 dark:text-white transition-colors shrink-0">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <div>
+                <h2 class="text-2xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-3 transition-colors">
+                    Bus {{ bus.number }}
+                    {% if bus.status == 1 %}
+                        <span class="text-[10px] bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/30 px-2 py-1 rounded uppercase tracking-widest shrink-0 align-middle transition-colors">Pending</span>
+                    {% elif bus.status == 2 %}
+                        <span class="text-[10px] bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-500/30 px-2 py-1 rounded uppercase tracking-widest shrink-0 align-middle transition-colors">Approved</span>
+                    {% elif bus.status == 3 %}
+                        <span class="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30 px-2 py-1 rounded uppercase tracking-widest shrink-0 align-middle transition-colors">Rejected</span>
+                    {% endif %}
+                </h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1 transition-colors">Operator: <span class="text-blue-600 dark:text-brand-blue font-bold transition-colors">{{ bus.operator }}</span></p>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-col lg:flex-row gap-8 items-start justify-center animate-slide-up" style="animation-delay: 0.1s;">
+
+        <div class="glass-card p-6 md:p-8 flex justify-center items-center overflow-x-auto w-full lg:w-auto relative transition-colors">
+            <div class="w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-600 px-1 mb-4 absolute top-4 transition-colors">
+                <span class="flex items-center gap-1.5"></span>
+                <span class="flex items-center gap-1.5">Right Side Front <i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+
+            <div class="grid-container mt-6" id="adminGridCanvas">
+                </div>
+        </div>
+
+        <aside class="w-full lg:w-80 shrink-0 space-y-6">
+
+            <div class="glass-card p-6 transition-colors">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-white/10 pb-2 flex items-center justify-between transition-colors">
+                    <span>Proposed Fares</span>
+                    <i class="fa-solid fa-tags text-yellow-600 dark:text-brand-gold transition-colors"></i>
+                </h3>
+
+                <div class="space-y-3" id="fare-display">
+                    </div>
+            </div>
+
+            <div class="glass-card p-6 transition-colors">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-white/10 pb-2 flex items-center justify-between transition-colors">
+                    <span>Audit Action</span>
+                    <i class="fa-solid fa-comments text-blue-600 dark:text-brand-blue transition-colors"></i>
+                </h3>
+
+                <div class="space-y-4">
+                    {% if bus.operator_remarks %}
+                        <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 p-3 rounded-lg text-left transition-colors">
+                            <p class="text-[9px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mb-1 transition-colors"><i class="fa-solid fa-building mr-1"></i> {{ bus.operator }}</p>
+                            <p class="text-xs text-gray-800 dark:text-gray-300 leading-relaxed transition-colors">"{{ bus.operator_remarks }}"</p>
+                        </div>
+                    {% endif %}
+
+                    {% if bus.feedback %}
+                        <div class="bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 p-3 rounded-lg text-right transition-colors">
+                            <p class="text-[9px] text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest mb-1 transition-colors">You <i class="fa-solid fa-crown ml-1"></i></p>
+                            <p class="text-xs text-gray-800 dark:text-gray-300 italic leading-relaxed transition-colors">"{{ bus.feedback }}"</p>
+                        </div>
+                    {% endif %}
+
+                    {% if bus.status == 1 %}
+                        <form method="POST" class="mt-4 flex flex-col gap-3 pt-2 border-t border-gray-200 dark:border-white/5 transition-colors">
+
+                            <label for="feedback_text" class="sr-only">Audit Notes</label>
+                            <textarea id="feedback_text" name="feedback_text" rows="3" placeholder="Add audit notes or rejection reason..." class="bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white px-3 py-2 rounded-lg text-xs outline-none focus:border-yellow-500 dark:focus:border-brand-gold w-full transition-colors resize-none shadow-sm dark:shadow-inner"></textarea>
+
+                            <div class="flex gap-2">
+                                <button type="submit" formaction="{{ url_for('admin_seat_action', bus_id=bus.id, action='reject') }}" class="flex-1 bg-red-50 dark:bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 dark:hover:text-white border border-red-200 dark:border-red-500/30 px-3 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-xmark"></i> Reject
+                                </button>
+                                <button type="submit" formaction="{{ url_for('admin_seat_action', bus_id=bus.id, action='approve') }}" class="flex-1 bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white dark:hover:bg-green-500 dark:hover:text-white border border-green-200 dark:border-green-500/30 px-3 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)]">
+                                    <i class="fa-solid fa-check"></i> Approve
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="mt-4 text-[10px] text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/5 px-4 py-3 rounded-lg text-center font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
+                            <i class="fa-solid fa-lock"></i> Layout Finalized
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const layoutData = {{ layout_data | tojson }};
+
+    if (!layoutData || layoutData.length === 0) {
+        document.getElementById('adminGridCanvas').innerHTML = "<p class='text-gray-500 text-sm'>No layout data submitted.</p>";
+        return;
+    }
+
+    // 1. Calculate dynamically how many rows the Operator used
+    let maxRow = 0;
+    layoutData.forEach(seat => {
+        if (seat.row > maxRow) maxRow = seat.row;
+    });
+
+    const ROWS = maxRow + 1; // +1 because arrays are 0-indexed
+    const COLS = 5;          // Columns are fixed at 5
+
+    // 2. Initialize the empty grid array based on the dynamic ROWS
+    let gridState = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ({ type: 'empty', id: null })));
+    let pSeater = 0, pSleeper = 0, pLadies = 0;
+
+    // 3. Map database data to local grid array and extract prices
+    layoutData.forEach(seat => {
+        if(seat.row < ROWS && seat.col < COLS) {
+            gridState[seat.row][seat.col] = { type: seat.type, id: seat.id };
+
+            if(seat.type === 'seater' && seat.price > 0) pSeater = seat.price;
+            if(seat.type === 'sleeper' && seat.price > 0) pSleeper = seat.price;
+            if(seat.type === 'ladies' && seat.price > 0) pLadies = seat.price;
+        }
+    });
+
+    // 4. Render Fare Panel (Adjusted for Light/Dark mode classes)
+    document.getElementById('fare-display').innerHTML = `
+        <div class="flex justify-between items-center bg-green-50 dark:bg-[#10b981]/10 px-4 py-3 rounded-lg border border-green-200 dark:border-[#10b981]/20 transition-colors">
+            <span class="text-green-600 dark:text-[#10b981] text-xs font-bold uppercase transition-colors"><i class="fa-solid fa-chair mr-2"></i> Seater</span>
+            <span class="text-gray-900 dark:text-white font-mono font-bold text-sm transition-colors">₹${pSeater}</span>
+        </div>
+        <div class="flex justify-between items-center bg-purple-50 dark:bg-[#8b5cf6]/10 px-4 py-3 rounded-lg border border-purple-200 dark:border-[#8b5cf6]/20 transition-colors">
+            <span class="text-purple-600 dark:text-[#8b5cf6] text-xs font-bold uppercase transition-colors"><i class="fa-solid fa-bed mr-2"></i> Sleeper</span>
+            <span class="text-gray-900 dark:text-white font-mono font-bold text-sm transition-colors">₹${pSleeper}</span>
+        </div>
+        <div class="flex justify-between items-center bg-pink-50 dark:bg-[#ec4899]/10 px-4 py-3 rounded-lg border border-pink-200 dark:border-[#ec4899]/20 transition-colors">
+            <span class="text-pink-600 dark:text-[#ec4899] text-xs font-bold uppercase transition-colors"><i class="fa-solid fa-person-dress mr-2"></i> Ladies</span>
+            <span class="text-gray-900 dark:text-white font-mono font-bold text-sm transition-colors">₹${pLadies}</span>
+        </div>
+    `;
+
+    // 5. Render Grid Canvas
+    const gridCanvas = document.getElementById('adminGridCanvas');
+
+    const iconMap = {
+        'seater': '<i class="fa-solid fa-chair"></i>',
+        'sleeper': '<i class="fa-solid fa-bed"></i>',
+        'ladies': '<i class="fa-solid fa-person-dress"></i>',
+        'aisle': '',
+        'driver': '<i class="fa-solid fa-dharmachakra"></i>',
+        'door': '<i class="fa-solid fa-door-open"></i>',
+        'empty': ''
+    };
+
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const cellData = gridState[r][c];
+            const cell = document.createElement('div');
+            cell.className = 'grid-cell';
+
+            if (cellData.type !== 'empty') {
+                cell.classList.add(`cell-${cellData.type}`);
+                cell.innerHTML = iconMap[cellData.type] || '';
+
+                if (cellData.id) {
+                    cell.innerHTML += `<span class="seat-id">${cellData.id}</span>`;
+                }
+            }
+            gridCanvas.appendChild(cell);
+        }
+    }
+});
+</script>
+{% endblock %}

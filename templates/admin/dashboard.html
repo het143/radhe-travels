@@ -1,0 +1,466 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Custom animations specifically for the dashboard */
+    .animate-slide-up { animation: slideUp 0.5s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes marquee { 0% { transform: translatex(100%); } 100% { transform: translatex(-100%); } }
+    .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 30s linear infinite; }
+
+    /* Custom Scrollbar for Modal */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(220, 38, 38, 0.3); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(220, 38, 38, 0.6); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-8 animate-slide-up">
+        <div>
+            <h1 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Dashboard Overview</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Real-time performance metrics across the Gujarat corridor.</p>
+        </div>
+
+        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end flex-wrap">
+
+            <button onclick="openPassengerSOSModal()" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-brand-red rounded-xl px-5 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-red-100 dark:hover:bg-red-500/20 relative shadow-sm">
+                <i class="fa-solid fa-bell {% if active_sos_count > 0 %}animate-pulse{% endif %} text-lg"></i>
+                <span class="text-xs font-bold uppercase tracking-widest hidden md:inline">Passenger SOS</span>
+                {% if active_sos_count > 0 %}
+                    <span class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-md border-2 border-white dark:border-[#0f172a]">{{ active_sos_count }}</span>
+                {% endif %}
+            </button>
+
+            <button onclick="openOperatorAlertModal()" class="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 text-orange-600 dark:text-orange-400 rounded-xl px-5 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-orange-100 dark:hover:bg-orange-500/20 relative shadow-sm">
+                <i class="fa-solid fa-triangle-exclamation {% if emergency_alerts %}animate-pulse{% endif %} text-lg"></i>
+                <span class="text-xs font-bold uppercase tracking-widest hidden md:inline">Operator Alerts</span>
+                {% if emergency_alerts %}
+                    <span class="absolute -top-2 -right-2 bg-orange-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-md border-2 border-white dark:border-[#0f172a]">{{ emergency_alerts|length }}</span>
+                {% endif %}
+            </button>
+
+            <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 w-fit transition-colors shadow-sm dark:shadow-none hidden sm:block">
+                <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-bold tracking-widest transition-colors">Server Uptime</p>
+                <p class="text-sm font-mono text-green-600 dark:text-green-400 font-bold transition-colors">99.998%</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-8 animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="glass-card p-4 md:p-5 border-l-4 border-l-green-500 transition-colors">
+            <p class="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2 transition-colors">Gross Revenue</p>
+            <h3 class="text-lg md:text-xl font-display font-bold text-gray-900 dark:text-white tracking-tight transition-colors">{{ total_revenue }}</h3>
+        </div>
+        <div class="glass-card p-4 md:p-5 border-l-4 border-l-yellow-500 dark:border-l-brand-gold transition-colors">
+            <p class="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2 transition-colors">Platform Cut</p>
+            <h3 class="text-lg md:text-xl font-display font-bold text-gray-900 dark:text-white tracking-tight transition-colors">{{ total_commission }}</h3>
+        </div>
+        <div class="glass-card p-4 md:p-5 border-l-4 border-l-brand-red transition-colors">
+            <p class="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2 transition-colors">Bookings</p>
+            <h3 class="text-xl md:text-2xl font-display font-bold text-gray-900 dark:text-white tracking-tight transition-colors">{{ total_bookings }}</h3>
+        </div>
+        <div class="glass-card p-4 md:p-5 border-l-4 border-l-gray-400 dark:border-l-gray-400 transition-colors">
+            <p class="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2 transition-colors">Total Fleet</p>
+            <h3 class="text-xl md:text-2xl font-display font-bold text-gray-900 dark:text-white tracking-tight transition-colors">{{ total_buses }}</h3>
+        </div>
+
+        <a href="{{ url_for('admin_view_users') }}" class="glass-card p-4 md:p-5 border-l-4 border-l-purple-500 dark:border-l-brand-purple block group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+            <p class="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2 group-hover:text-purple-600 dark:group-hover:text-brand-purple transition-colors">Total Users <i class="fa-solid fa-arrow-right ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></i></p>
+            <h3 class="text-xl md:text-2xl font-display font-bold text-gray-900 dark:text-white tracking-tight transition-colors">{{ total_users }}</h3>
+        </a>
+
+        <a href="{{ url_for('admin_view_operators') }}" class="glass-card p-4 md:p-5 border-l-4 border-l-blue-500 dark:border-l-brand-blue block group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+            <p class="text-[9px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2 group-hover:text-blue-600 dark:group-hover:text-brand-blue transition-colors">Operators <i class="fa-solid fa-arrow-right ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></i></p>
+            <h3 class="text-xl md:text-2xl font-display font-bold text-gray-900 dark:text-white tracking-tight transition-colors">{{ total_operators }}</h3>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 animate-slide-up" style="animation-delay: 0.2s;">
+        <div class="lg:col-span-2 glass-card p-6 md:p-8 transition-colors">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors">Financial Trajectory</h3>
+                <span class="bg-brand-red text-white text-[10px] font-bold px-2 py-1 rounded hidden sm:inline-block">SALES DATA</span>
+            </div>
+            <div class="relative h-64 md:h-80 w-full"><canvas id="revenueChart"></canvas></div>
+        </div>
+
+       <div class="glass-card p-6 md:p-8 transition-colors">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6 transition-colors">Booking Health</h3>
+            <div class="relative h-48 md:h-56 flex justify-center mb-6"><canvas id="healthChart"></canvas></div>
+            <div class="space-y-3">
+                <div class="flex justify-between text-xs text-gray-700 dark:text-gray-300 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 transition-colors">
+                    <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-green-500"></div> Confirmed</span>
+                    <span class="font-bold text-green-600 dark:text-green-400 transition-colors">{{ health_percentages.confirmed }}%</span>
+                </div>
+                <div class="flex justify-between text-xs text-gray-700 dark:text-gray-300 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 transition-colors">
+                    <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-red-500"></div> Cancelled</span>
+                    <span class="font-bold text-red-600 dark:text-red-400 transition-colors">{{ health_percentages.cancelled }}%</span>
+                </div>
+                <div class="flex justify-between text-xs text-gray-700 dark:text-gray-300 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 transition-colors">
+                    <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-yellow-500"></div> Failed / Pending</span>
+                    <span class="font-bold text-yellow-600 dark:text-yellow-400 transition-colors">{{ health_percentages.failed }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up mb-12" style="animation-delay: 0.3s;">
+
+        <div class="glass-card p-6 flex flex-col max-h-[500px] transition-colors">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors">Action Required</h3>
+                <span class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Priority Queue</span>
+            </div>
+
+            <div class="space-y-4 overflow-y-auto pr-2 flex-1 scroll-smooth">
+
+                {% for op in pending_ops %}
+                <div class="p-4 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-xl border border-gray-200 dark:border-white/5 flex justify-between items-center group flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-200 dark:border-brand-gold/20 rounded-lg flex items-center justify-center text-yellow-600 dark:text-brand-gold transition-colors"><i class="fa-solid fa-user-tie"></i></div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ op.name }}</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 font-mono transition-colors">New Operator Reg.</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('admin_approve_operator') }}" class="ml-auto text-[10px] bg-yellow-400 dark:bg-brand-gold text-gray-900 dark:text-black font-extrabold px-3 py-1.5 rounded-lg transition-all shadow-md dark:shadow-[0_0_10px_rgba(251,191,36,0.2)] hover:bg-yellow-500">Review</a>
+                </div>
+                {% endfor %}
+
+                {% for r in pending_routes %}
+                <div class="p-4 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-xl border border-gray-200 dark:border-white/5 flex justify-between items-center group flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-red-100 dark:bg-brand-red/10 border border-red-200 dark:border-brand-red/20 rounded-lg flex items-center justify-center text-red-600 dark:text-brand-red transition-colors"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.source }} ⇄ {{ r.destination }}</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 font-mono transition-colors">New Route Request</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('admin_approval_hub', tab='routes') }}" class="ml-auto text-[10px] bg-red-600 dark:bg-brand-red text-white font-extrabold px-3 py-1.5 rounded-lg transition-all shadow-md dark:shadow-[0_0_10px_rgba(216,78,85,0.2)] hover:bg-red-700">Review</a>
+                </div>
+                {% endfor %}
+
+                {% for l in pending_layouts %}
+                <div class="p-4 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-xl border border-gray-200 dark:border-white/5 flex justify-between items-center group flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-purple-100 dark:bg-brand-purple/10 border border-purple-200 dark:border-brand-purple/20 rounded-lg flex items-center justify-center text-purple-600 dark:text-brand-purple transition-colors"><i class="fa-solid fa-couch"></i></div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ l.bus_number }}</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 font-mono transition-colors">Layout by {{ l.operator }}</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('admin_approval_hub', tab='layouts') }}" class="ml-auto text-[10px] bg-purple-600 dark:bg-brand-purple text-white font-extrabold px-3 py-1.5 rounded-lg transition-all shadow-md dark:shadow-[0_0_10px_rgba(139,92,246,0.2)] hover:bg-purple-700">Review</a>
+                </div>
+                {% endfor %}
+
+                {% for s in pending_schedules %}
+                <div class="p-4 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-xl border border-gray-200 dark:border-white/5 flex justify-between items-center group flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ s.route }}</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 font-mono transition-colors">Trip by {{ s.operator }}</p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('admin_approval_hub', tab='schedules') }}" class="ml-auto text-[10px] bg-blue-600 dark:bg-blue-500 text-white font-extrabold px-3 py-1.5 rounded-lg transition-all shadow-md dark:shadow-[0_0_10px_rgba(59,130,246,0.2)] hover:bg-blue-700">Review</a>
+                </div>
+                {% endfor %}
+
+                {% if not pending_ops and not pending_routes and not pending_layouts and not pending_schedules %}
+                <div class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-500 py-8 transition-colors">
+                    <i class="fa-solid fa-check-circle text-4xl text-green-500/50 dark:text-green-500/30 mb-3 transition-colors"></i>
+                    <p class="text-sm font-bold text-gray-800 dark:text-gray-300 transition-colors">All clear!</p>
+                    <p class="text-[10px]">No pending items in the queue.</p>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <div class="glass-card p-6 transition-colors">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 transition-colors">Market Leaders</h3>
+            <div class="relative h-56 w-full"><canvas id="marketChart"></canvas></div>
+        </div>
+    </div>
+
+</div>
+
+<div class="fixed bottom-0 left-0 md:left-[280px] right-0 h-8 bg-white/90 dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-white/5 overflow-hidden flex items-center z-30 transition-colors">
+    <div class="animate-marquee">
+        <span class="text-[10px] font-mono text-gray-600 dark:text-gray-500 uppercase tracking-widest transition-colors">
+            [SYSTEM] Database cluster healthy... [SECURITY] Zero active threats detected... [FINANCE] Payouts dispatched for Week 3...
+        </span>
+    </div>
+</div>
+
+<div id="passenger-sos-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-red-500/30 p-6 md:p-8 max-w-3xl w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+
+        <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-white/10 pb-4 shrink-0">
+            <h3 class="text-xl md:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-brand-red">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                Passenger Emergencies
+            </h3>
+            <button onclick="closePassengerSOSModal()" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors bg-gray-100 dark:bg-white/5 w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="overflow-y-auto pr-2 space-y-4 flex-1 custom-scrollbar">
+            {% if passenger_sos %}
+                {% for sos in passenger_sos %}
+
+                    {% if sos.status == 0 %}
+                        <div class="bg-red-50 dark:bg-red-500/10 border-2 border-red-400 dark:border-red-500 p-5 rounded-xl shadow-lg relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black px-3 py-1 rounded-bl-lg tracking-widest uppercase shadow-md">Active SOS</div>
+
+                            <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mt-2">
+                                <div class="flex-1">
+                                    <p class="text-[10px] text-red-500 dark:text-red-400 uppercase tracking-widest font-bold mb-1">Critical Passenger Alert</p>
+                                    <h4 class="text-gray-900 dark:text-white font-bold text-lg mb-1">{{ sos.passenger }} <a href="tel:{{ sos.mobile }}" class="text-blue-500 hover:underline ml-2 text-sm"><i class="fa-solid fa-phone"></i> {{ sos.mobile }}</a></h4>
+                                    <p class="text-xs font-mono text-gray-600 dark:text-gray-400 mb-3 bg-gray-200 dark:bg-white/10 inline-block px-2 py-1 rounded">Ticket: {{ sos.pnr }}</p>
+
+                                    <div class="bg-white dark:bg-black/40 p-3 rounded-lg border border-red-200 dark:border-red-500/20">
+                                        <p class="text-sm text-red-700 dark:text-red-300 font-mono italic whitespace-pre-wrap">"{{ sos.message }}"</p>
+                                    </div>
+                                </div>
+                                <form method="POST" action="{{ url_for('admin_support_action', ticket_id=sos.ticket_id) }}" class="m-0 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex flex-col gap-2">
+                                    <input type="hidden" name="reply_text" value="Emergency SOS Response Handled by System Administrator.">
+                                    <button type="submit" onclick="this.innerHTML='<i class=\'fa-solid fa-spinner fa-spin\'></i> Closing...'; this.classList.add('opacity-75', 'cursor-not-allowed');" class="w-full sm:w-auto bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black text-xs font-bold px-5 py-2.5 rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-colors flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-check-double"></i> Mark Handled
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="bg-green-50 dark:bg-green-500/10 border-2 border-green-400 dark:border-green-600 p-5 rounded-xl shadow-sm relative overflow-hidden opacity-80">
+                            <div class="absolute top-0 right-0 bg-green-600 text-white text-[9px] font-black px-3 py-1 rounded-bl-lg tracking-widest uppercase shadow-md">Resolved</div>
+
+                            <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mt-2">
+                                <div class="flex-1">
+                                    <p class="text-[10px] text-green-600 dark:text-green-400 uppercase tracking-widest font-bold mb-1">Handled Passenger Alert</p>
+                                    <h4 class="text-gray-900 dark:text-white font-bold text-lg mb-1">{{ sos.passenger }}</h4>
+                                    <p class="text-xs font-mono text-gray-600 dark:text-gray-400 mb-3 bg-gray-200 dark:bg-white/10 inline-block px-2 py-1 rounded">Ticket: {{ sos.pnr }}</p>
+
+                                    <div class="bg-white dark:bg-black/40 p-3 rounded-lg border border-green-200 dark:border-green-500/20">
+                                        <p class="text-sm text-green-700 dark:text-green-300 font-mono italic whitespace-pre-wrap">"{{ sos.message }}"</p>
+                                    </div>
+                                </div>
+                                <div class="m-0 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex flex-col justify-center">
+                                    <span class="w-full sm:w-auto bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700 text-xs font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-shield-check"></i> Handled
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="w-20 h-20 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">All Clear</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">No active or past passenger SOS alerts.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="operator-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-orange-500/30 p-6 md:p-8 max-w-3xl w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+
+        <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-white/10 pb-4 shrink-0">
+            <h3 class="text-xl md:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                Operator Alerts
+            </h3>
+            <button onclick="closeOperatorAlertModal()" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors bg-gray-100 dark:bg-white/5 w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="overflow-y-auto pr-2 space-y-4 flex-1 custom-scrollbar">
+            {% if emergency_alerts %}
+                {% for alert in emergency_alerts %}
+                    <div class="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 p-5 rounded-xl shadow-sm">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div class="flex-1">
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold mb-1">Operator Report</p>
+                                <h4 class="text-gray-900 dark:text-white font-bold text-lg mb-2">{{ alert.operator }}</h4>
+                                <div class="bg-white dark:bg-black/40 p-3 rounded-lg border border-orange-100 dark:border-orange-500/10">
+                                    <p class="text-sm text-orange-700 dark:text-orange-300 font-mono italic">
+                                        "{{ alert.message }}"
+                                    </p>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ url_for('admin_clear_alert', op_name=alert.operator) }}" class="m-0 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                                <button type="submit" onclick="this.innerHTML='<i class=\'fa-solid fa-spinner fa-spin\'></i> Clearing...'; this.classList.add('opacity-75', 'cursor-not-allowed');" class="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-[0_4px_10px_rgba(249,115,22,0.3)] transition-colors flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-shield-check"></i> Resolve Alert
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="w-20 h-20 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">System Secure</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">There are no active operator alerts requiring your attention.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
+<script>
+    // Split Modal Logic
+    function openPassengerSOSModal() {
+        const modal = document.getElementById('passenger-sos-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closePassengerSOSModal() {
+        const modal = document.getElementById('passenger-sos-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    function openOperatorAlertModal() {
+        const modal = document.getElementById('operator-alert-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeOperatorAlertModal() {
+        const modal = document.getElementById('operator-alert-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    /* global Chart */
+    window.onload = function() {
+        // Inject Dynamic Data from Python Controller
+        const revLabels = {{ revenue_labels | tojson }};
+        const revData = {{ revenue_data | tojson }};
+        const healthData = {{ health_data | tojson }};
+        const marketLabels = {{ market_labels | tojson }};
+        const marketData = {{ market_data | tojson }};
+
+        // Determine if Dark Mode is active for Chart grids/text
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const textColor = isDarkMode ? '#64748b' : '#94a3b8';
+
+        // 1. REVENUE CHART (Dynamic)
+        const ctxRev = document.getElementById('revenueChart').getContext('2d');
+        const grad = ctxRev.createLinearGradient(0, 0, 0, 400);
+        grad.addColorStop(0, 'rgba(216, 78, 85, 0.3)');
+        grad.addColorStop(1, 'rgba(216, 78, 85, 0)');
+
+        new Chart(ctxRev, {
+            type: 'line',
+            data: {
+                labels: revLabels,
+                datasets: [{ label: 'Gross Revenue (INR)', data: revData, borderColor: '#d84e55', backgroundColor: grad, fill: true, tension: 0.4, borderWidth: 3 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: gridColor }, ticks: { color: textColor } },
+                    x: { grid: { display: false }, ticks: { color: textColor } }
+                }
+            }
+        });
+
+        // 2. HEALTH DOUGHNUT (Dynamic)
+        new Chart(document.getElementById('healthChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Success', 'Cancel', 'Failed'],
+                datasets: [{ data: healthData, backgroundColor: ['#10b981', '#d84e55', '#fbbf24'], borderWidth: 0 }]
+            },
+            options: { cutout: '80%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // 3. MARKET SHARE (Dynamic)
+        new Chart(document.getElementById('marketChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: marketLabels,
+                datasets: [{ label: 'Buses', data: marketData, backgroundColor: '#fbbf24', borderRadius: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: {
+                    y: { display: false },
+                    x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } }
+                }
+            }
+        });
+    };
+
+    // Socket IO Listener
+    document.addEventListener('DOMContentLoaded', function() {
+        const socket = io();
+
+        socket.on('emergency_trigger', function(data) {
+            // Play alarm sound
+            let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(e => console.log("Audio play blocked by browser:", e));
+
+            // Generate Toast Alert
+            const toast = document.createElement('div');
+            toast.className = `fixed top-5 right-5 z-[200] bg-red-600 text-white p-4 rounded-xl shadow-2xl transform transition-all duration-500 translate-x-full border-2 border-red-300`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-triangle-exclamation animate-pulse text-2xl"></i>
+                    <div>
+                        <h4 class="font-black text-sm uppercase tracking-widest">${data.title}</h4>
+                        <p class="text-xs font-medium">${data.message}</p>
+                    </div>
+                </div>
+                <div class="mt-3 text-right">
+                    <button onclick="window.location.reload()" class="bg-white text-red-600 text-[10px] font-bold px-3 py-1.5 rounded-lg shadow uppercase hover:bg-gray-100 transition-colors">Reload Dashboard</button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Slide Toast onto screen
+            setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+        });
+    });
+</script>
+{% endblock %}

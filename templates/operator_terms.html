@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator Terms & Conditions | Radhe Travels</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        /* global tailwind */
+        tailwind.config = {
+            darkMode: 'class', // Enable class-based dark mode
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Outfit', sans-serif; transition: background-color 0.3s ease; }
+
+        /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+        html, body {
+            background-color: transparent !important;
+        }
+
+        /* 1. RESPONSIVE BACKGROUND IMAGE */
+        .bg-image {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            z-index: -10;
+            pointer-events: none;
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+            /* LIGHT MODE IMAGE (Professional contract documents) */
+            background-image: url('https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=2000&q=80') !important;
+        }
+
+        /* Light Mode Overlay */
+        .bg-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(249, 250, 251, 0.7) !important; /* 70% white tint to make text highly readable */
+            backdrop-filter: blur(8px) !important; /* Smooth blur */
+            transition: background 0.5s ease;
+        }
+
+        /* DARK MODE IMAGE (Sleek, moody corporate contract vibe) */
+        .dark .bg-image {
+            background-image: url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=2000&q=80') !important;
+        }
+
+        /* Dark Mode Overlay */
+        .dark .bg-image::after {
+            background: rgba(15, 23, 42, 0.75) !important; /* 75% dark slate tint */
+            backdrop-filter: blur(8px) !important;
+        }
+
+        /* Glass Container Light/Dark Handling */
+        .glass-container {
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .dark .glass-container {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        html:not(.dark) .glass-container {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen flex justify-center bg-transparent">
+
+    <!-- Floating Theme Toggle -->
+    <div class="fixed top-4 right-4 md:top-6 md:right-8 z-50">
+        <button id="theme-toggle" type="button" class="w-12 h-12 rounded-full bg-white/80 dark:bg-black/60 backdrop-blur-md border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white shadow-lg transition-all hover:scale-110">
+            <i id="theme-toggle-dark-icon" class="fa-solid fa-moon hidden text-lg"></i>
+            <i id="theme-toggle-light-icon" class="fa-solid fa-sun hidden text-lg"></i>
+        </button>
+    </div>
+
+    <!-- Background Layer -->
+    <div class="bg-image"></div>
+
+    <div class="glass-container w-full max-w-4xl p-8 md:p-12 relative overflow-hidden mt-12 md:mt-0">
+
+        <!-- Decorative Glow Elements inside the glass container -->
+        <div class="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl pointer-events-none transition-colors"></div>
+        <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-red-500/10 dark:bg-red-500/20 rounded-full blur-3xl pointer-events-none transition-colors"></div>
+
+        <div class="relative z-10">
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-10 border-b border-gray-200 dark:border-white/10 pb-6 transition-colors">
+                <div class="w-14 h-14 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl shadow-sm dark:shadow-lg transition-colors shrink-0">
+                    <i class="fa-solid fa-file-contract"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">Operator Terms & Conditions</h1>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors font-medium">Last Updated: April 2026 • Radhe Travels Network</p>
+                </div>
+            </div>
+
+            <div class="space-y-8 text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed transition-colors">
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3 transition-colors">
+                        <i class="fa-solid fa-percent text-blue-600 dark:text-blue-400"></i> 1. Platform Commission & Fees
+                    </h2>
+                    <p class="mb-2">By registering as an operator on the Radhe Travels platform, you agree to the following financial structure:</p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>Radhe Travels deducts a standard <span class="text-gray-900 dark:text-white font-bold transition-colors">10% Platform Commission</span> on all gross ticket sales generated through the portal, unless a custom rate is explicitly granted by System Administration.</li>
+                        <li>Commission is calculated automatically at the time of transaction.</li>
+                        <li>Platform fees are non-refundable in the event of operator-initiated cancellations.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3 transition-colors">
+                        <i class="fa-solid fa-bus-circle-check text-green-600 dark:text-green-400"></i> 2. Fleet & Safety Standards
+                    </h2>
+                    <p class="mb-2">Operator guarantees that all vehicles registered on the platform meet minimum legal and safety standards:</p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>All uploaded Fleet Registration Documents and Trade Licenses must be authentic, valid, and legally recognized by the government of India.</li>
+                        <li>Vehicles must possess active commercial insurance and valid fitness certificates.</li>
+                        <li>Falsifying documents or seating layouts is grounds for immediate, permanent account termination.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3 transition-colors">
+                        <i class="fa-solid fa-money-bill-transfer text-yellow-600 dark:text-brand-gold"></i> 3. Payouts & Settlements
+                    </h2>
+                    <p class="mb-2">Settlements are processed according to the operator ledger:</p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>Net Payable Amounts (Gross Revenue minus Platform Commission) are calculated in real-time on the operator dashboard.</li>
+                        <li>Payouts are dispatched by System Administration on a scheduled basis to the registered business bank account.</li>
+                        <li>Discrepancies in the ledger must be reported via the Customer Care module within 72 hours of settlement.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3 transition-colors">
+                        <i class="fa-solid fa-scale-balanced text-brand-red dark:text-red-400"></i> 4. Liability & Insurance
+                    </h2>
+                    <p>Radhe Travels functions strictly as a technological aggregator and ticket booking platform. Radhe Travels assumes <span class="text-gray-900 dark:text-white font-bold underline decoration-brand-red transition-colors">zero liability</span> for physical accidents, luggage loss, mechanical breakdowns, or operational delays. The Fleet Operator holds 100% liability for the safe transport of passengers.</p>
+                </section>
+
+                <div class="mt-12 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 p-5 rounded-xl flex items-start gap-4 transition-colors shadow-inner">
+                    <i class="fa-solid fa-circle-check text-blue-600 dark:text-blue-400 text-xl mt-0.5"></i>
+                    <p class="text-sm text-blue-900 dark:text-blue-100 transition-colors font-medium">By checking the consent box on the registration page, you acknowledge that you have read, understood, and agreed to all conditions outlined in this legally binding agreement.</p>
+                </div>
+
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-gray-200 dark:border-white/10 text-center transition-colors">
+                <button onclick="window.close()" class="bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-900 dark:text-white font-bold py-3 px-8 rounded-xl transition-colors duration-300 shadow-sm dark:shadow-lg border border-gray-300 dark:border-white/10">
+                    I Understand, Close Tab
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Initialization Script for the Theme Toggle -->
+    <script>
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+
+        // Check Local Storage or System Preference on Load
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+            document.documentElement.classList.add('dark');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Toggle Event Listener
+        themeToggleBtn.addEventListener('click', function() {
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            if (localStorage.getItem('color-theme')) {
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                }
+            } else {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

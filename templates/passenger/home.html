@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (LIGHT & DARK IMAGES) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10; /* Sent to the very back */
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Beautiful, bright scenic road with a bus) */
+        background-image: url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Light Mode Overlay (Ensures text readability) */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.5) !important; /* Soft white tint */
+        backdrop-filter: blur(4px) !important;
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Sleek night time highway) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Dark Mode Overlay (Ensures text readability) */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.75) !important; /* Dark slate tint */
+        backdrop-filter: blur(6px) !important;
+    }
+
+    /* 2. GLASS COMPONENTS */
+    .glass-card {
+        backdrop-filter: blur(16px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+    }
+
+    .glass-card:hover { transform: translateY(-8px); }
+    .dark .glass-card:hover { border-color: rgba(251, 191, 36, 0.4); box-shadow: 0 15px 30px -10px rgba(0,0,0,0.5); }
+    html:not(.dark) .glass-card:hover { border-color: rgba(251, 191, 36, 0.4); box-shadow: 0 15px 35px -5px rgba(0,0,0,0.1); }
+
+    /* 3. CUSTOM INPUTS */
+    html:not(.dark) .royal-input {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+        border-radius: 12px; width: 100%; transition: all 0.3s; font-size: 0.95rem; outline: none; appearance: none;
+    }
+    html:not(.dark) .royal-input:focus { border-color: #d84e55; box-shadow: 0 0 0 3px rgba(216, 78, 85, 0.1); }
+
+    .dark .royal-input {
+        background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;
+        border-radius: 12px; width: 100%; transition: all 0.3s; font-size: 0.95rem; outline: none; appearance: none;
+    }
+    .dark .royal-input:focus { border-color: #d84e55; background: rgba(0,0,0,0.6); box-shadow: 0 0 0 3px rgba(216, 78, 85, 0.1); }
+
+    ::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+    .dark ::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+    /* Fix dropdowns */
+    select.royal-input option { background-color: #ffffff; color: #0f172a; }
+    .dark select.royal-input option { background-color: #0f172a; color: white; }
+
+    /* 4. TYPOGRAPHY */
+    .text-gradient {
+        background: linear-gradient(to right, #d84e55, #f59e0b);
+        background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .dark .text-gradient {
+        background: linear-gradient(to right, #fbbf24, #f59e0b);
+        background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.active { opacity: 1; transform: translateY(0); }
+
+    /* 5. HUB CARDS */
+    .hub-card {
+        border-radius: 20px; padding: 24px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; display: block;
+    }
+
+    .dark .hub-card {
+        background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html:not(.dark) .hub-card {
+        background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .hub-card:hover { transform: translateY(-8px); border-color: #fbbf24; }
+    .dark .hub-card:hover { background: rgba(30, 41, 59, 0.7); box-shadow: 0 15px 35px -5px rgba(0,0,0,0.5); }
+    html:not(.dark) .hub-card:hover { box-shadow: 0 15px 35px -5px rgba(0,0,0,0.1); }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* 6. ROUTE CARDS (From search_routes) */
+    .route-card {
+        backdrop-filter: blur(16px);
+        border-radius: 20px; transition: all 0.3s; position: relative; overflow: hidden;
+    }
+
+    .dark .route-card {
+        background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    html:not(.dark) .route-card {
+        background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .route-card:hover { transform: translateY(-5px); border-color: rgba(251, 191, 36, 0.4); }
+    .dark .route-card:hover { box-shadow: 0 15px 30px -10px rgba(0,0,0,0.6); }
+    html:not(.dark) .route-card:hover { box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1); }
+
+    .route-card::before {
+        content: '\f279'; font-family: 'Font Awesome 6 Free', serif; font-weight: 900;
+        position: absolute; right: -20px; top: -20px; font-size: 8rem; pointer-events: none; transition: all 0.5s; transform: rotate(-15deg);
+    }
+
+    .dark .route-card::before { color: rgba(255,255,255,0.02); }
+    html:not(.dark) .route-card::before { color: rgba(0,0,0,0.02); }
+
+    .route-card:hover::before { color: rgba(251, 191, 36, 0.05); transform: rotate(0deg) scale(1.1); }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- FULL SCREEN BACKGROUND -->
+<div class="hero-bg" id="hero-bg"></div>
+
+<!-- FLOATING SOS BUTTON -->
+<button onclick="openSOSModal()" class="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[90] w-14 h-14 md:w-16 md:h-16 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-[0_0_20px_rgba(220,38,38,0.5)] flex items-center justify-center text-xl md:text-2xl transition-transform transform hover:scale-110 animate-bounce group" title="Emergency SOS">
+    <i class="fa-solid fa-shield-halved"></i>
+    <!-- Tooltip on Hover -->
+    <span class="absolute right-20 bg-gray-900 dark:bg-white text-white dark:text-black text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">Emergency SOS</span>
+</button>
+
+<div class="container mx-auto px-6 pt-12 md:pt-20 pb-20 relative z-10">
+
+    <div class="max-w-4xl mx-auto text-center mb-16 animate-slide-up">
+        <span class="inline-block px-4 py-1.5 rounded-full bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-300 dark:border-brand-gold/30 text-yellow-600 dark:text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-6 backdrop-blur-md transition-colors">
+            <i class="fa-solid fa-sparkles mr-1"></i> Premier Inter-City Travel
+        </span>
+        <h1 class="text-4xl md:text-7xl lg:text-8xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-6 drop-shadow-md dark:drop-shadow-2xl transition-colors">
+            The Gold Standard <br>
+            <span class="text-gradient font-serif italic">of Journeys.</span>
+        </h1>
+        <p class="text-gray-700 dark:text-gray-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed transition-colors font-medium drop-shadow-sm">
+            Book premium AC Sleeper coaches, enjoy priority boarding, and track your Trip.
+        </p>
+    </div>
+
+    <div class="glass-card rounded-3xl p-6 md:p-10 max-w-6xl mx-auto mb-20 animate-slide-up" style="animation-delay: 0.1s;">
+
+        <div class="flex items-center justify-between mb-8 border-b border-gray-200 dark:border-white/10 pb-4">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-ticket-simple text-brand-red dark:text-brand-red mr-3 transform -rotate-45"></i>Book Your Journey</h2>
+            <span class="hidden md:inline-flex items-center text-[10px] text-blue-600 dark:text-brand-blue bg-blue-50 dark:bg-brand-blue/10 border border-blue-200 dark:border-brand-blue/20 px-4 py-1.5 rounded-full font-bold uppercase tracking-widest transition-colors shadow-sm">
+                <i class="fa-solid fa-satellite-dish mr-1.5 animate-pulse"></i> Live Fleet Tracking
+            </span>
+        </div>
+
+        <form action="{{ url_for('search_bus') }}" method="GET" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end" onsubmit="return validateForm()">
+            <div class="md:col-span-3 text-left">
+                <label for="source" class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-2 tracking-wider transition-colors">From</label>
+                <div class="relative">
+                    <i class="fa-solid fa-bus absolute left-4 top-1/2 -translate-y-1/2 text-brand-red text-sm z-10 pointer-events-none transition-colors"></i>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs pointer-events-none z-10 transition-colors"></i>
+                    <select name="source" id="source" onchange="validateCities()" class="royal-input py-4 pr-10 pl-12 text-base cursor-pointer relative z-0" required>
+                        <option value="" disabled selected>Select Origin</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}">{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="hidden md:flex md:col-span-1 items-center justify-center pb-2">
+                <button type="button" onclick="swapCities()" class="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-brand-red dark:hover:text-brand-red hover:bg-gray-200 hover:dark:bg-white/10 hover:rotate-180 transition duration-500 shadow-sm">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </button>
+            </div>
+
+            <div class="md:col-span-3 text-left">
+                <label for="destination" class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-2 tracking-wider transition-colors">To</label>
+                <div class="relative">
+                    <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-brand-red text-sm z-10 pointer-events-none transition-colors"></i>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs pointer-events-none z-10 transition-colors"></i>
+                    <select name="destination" id="destination" onchange="validateCities()" class="royal-input py-4 pr-10 pl-12 text-base cursor-pointer relative z-0" required>
+                        <option value="" disabled selected>Select Destination</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}">{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="md:col-span-3 text-left">
+                <label for="date" class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 ml-2 tracking-wider transition-colors">Date</label>
+                <div class="relative">
+                    <i class="fa-regular fa-calendar absolute left-4 top-1/2 -translate-y-1/2 text-brand-red text-sm z-10 pointer-events-none transition-colors"></i>
+                    <input type="date" id="date" name="date" class="royal-input py-4 pr-4 pl-12 text-gray-700 dark:text-gray-300 cursor-pointer text-sm relative z-0" min="{{ today }}" required onclick="this.showPicker()">
+                </div>
+            </div>
+
+            <div class="md:col-span-2">
+                <button type="submit" class="w-full h-[58px] bg-brand-red hover:bg-red-600 text-white font-bold rounded-xl shadow-[0_5px_15px_rgba(216,78,85,0.4)] transition flex items-center justify-center gap-2 group text-base transform hover:-translate-y-1">
+                    <span>Search</span>
+                    <i class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-24 reveal">
+        <div class="flex justify-between items-end mb-8 px-2">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors drop-shadow-sm"><i class="fa-solid fa-map-location-dot text-yellow-500 dark:text-brand-gold mr-2 transition-colors"></i> Popular Destinations</h2>
+            <a href="{{ url_for('search_routes') }}" class="text-xs font-bold text-brand-red dark:text-brand-red hover:text-red-700 dark:hover:text-red-400 transition-colors uppercase tracking-widest bg-red-50 dark:bg-brand-red/10 border border-red-200 dark:border-brand-red/20 px-4 py-2 rounded-full">View All <i class="fa-solid fa-arrow-right ml-1"></i></a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for route in routes %}
+                <div class="route-card p-6 flex flex-col justify-between h-full">
+
+                    <div class="mb-6 relative z-10">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-[10px] text-gray-600 dark:text-gray-300 font-mono tracking-widest font-bold transition-colors">
+                                ID: {{ route.id }}
+                            </div>
+                            <div class="text-[10px] font-bold text-yellow-600 dark:text-brand-gold bg-yellow-50 dark:bg-brand-gold/10 px-2 py-1 rounded border border-yellow-200 dark:border-brand-gold/20 transition-colors">
+                                {{ route.distance }} KM
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors">{{ route.source }}</h3>
+                        <div class="my-3 flex items-center gap-2 text-gray-400 dark:text-gray-500">
+                            <i class="fa-solid fa-arrow-down text-[10px]"></i>
+                            <div class="flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-600 transition-colors"></div>
+                            <i class="fa-solid fa-location-dot text-brand-red text-[10px] transition-colors"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors">{{ route.destination }}</h3>
+                    </div>
+
+                    <div class="mt-auto border-t border-gray-200 dark:border-white/10 pt-5 relative z-10 transition-colors">
+                        <form method="POST" action="{{ url_for('search_bus') }}" class="flex flex-col gap-3">
+                            <input type="hidden" name="source" value="{{ route.source }}">
+                            <input type="hidden" name="destination" value="{{ route.destination }}">
+
+                            <div class="relative group">
+                                <i class="fa-regular fa-calendar absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-hover:text-brand-red dark:group-hover:text-brand-red transition-colors z-10 pointer-events-none"></i>
+                                <input type="date" name="date" required class="royal-input py-3.5 pr-4 pl-12 cursor-pointer text-gray-700 dark:text-gray-300 text-sm" min="{{ today }}" title="Select Travel Date" onclick="this.showPicker()">
+                            </div>
+
+                            <button type="submit" class="w-full bg-gray-200 dark:bg-white/10 hover:bg-brand-red dark:hover:bg-brand-red text-gray-800 dark:text-white hover:text-white hover:dark:text-white text-xs font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1 shadow-sm">
+                                Find Buses <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                </div> {% else %}
+                <div class="col-span-full py-16 text-center glass-card border-dashed border-2 border-gray-300 dark:border-white/10 transition-colors">
+                    <div class="w-16 h-16 bg-gray-200 dark:bg-white/5 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 mx-auto mb-4 text-2xl transition-colors"><i class="fa-solid fa-road-barrier"></i></div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-bold transition-colors">No active routes available right now.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto mb-32">
+        <h2 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em] mb-10 text-center transition-colors">Ecosystem Hub</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 reveal">
+            <a href="{{ url_for('search_routes') }}" class="hub-card">
+                <div class="w-14 h-14 bg-green-100 dark:bg-green-500/10 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-400 text-2xl mb-6 border border-green-200 dark:border-green-500/20 transition-colors shadow-inner">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+                <h3 class="text-gray-900 dark:text-white font-bold text-lg mb-2 transition-colors">All Routes & Timetables</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed transition-colors">Explore our complete network of premium inter-city routes and daily schedules.</p>
+            </a>
+
+            <a href="{{ url_for('history') }}" class="hub-card">
+                <div class="w-14 h-14 bg-yellow-100 dark:bg-brand-gold/10 rounded-2xl flex items-center justify-center text-yellow-600 dark:text-brand-gold text-2xl mb-6 border border-yellow-200 dark:border-brand-gold/20 transition-colors shadow-inner">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h3 class="text-gray-900 dark:text-white font-bold text-lg mb-2 transition-colors">Trip History</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed transition-colors">Review past journeys, download invoices, and manage your secure bookings.</p>
+            </a>
+
+            <a href="{{ url_for('feedback') }}" class="hub-card">
+                <div class="w-14 h-14 bg-blue-100 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl mb-6 border border-blue-200 dark:border-blue-500/20 transition-colors shadow-inner">
+                    <i class="fa-solid fa-star-half-stroke"></i>
+                </div>
+                <h3 class="text-gray-900 dark:text-white font-bold text-lg mb-2 transition-colors">Give Feedback</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed transition-colors">Help us maintain the gold standard. Share your experience and earn rewards.</p>
+            </a>
+
+            <a href="{{ url_for('support') }}" class="hub-card">
+                <div class="w-14 h-14 bg-purple-100 dark:bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 text-2xl mb-6 border border-purple-200 dark:border-purple-500/20 transition-colors shadow-inner">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
+                <h3 class="text-gray-900 dark:text-white font-bold text-lg mb-2 transition-colors">Customer Care</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed transition-colors">24/7 priority support for all your booking, refund, and travel inquiries.</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-10 reveal">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="{{ url_for('search_routes') }}" class="md:col-span-2 glass-card rounded-3xl p-10 flex flex-col justify-center relative overflow-hidden group border-gray-200 dark:border-white/10 shadow-xl transition-colors">
+                <div class="absolute -right-32 -top-32 w-80 h-80 bg-brand-red/10 dark:bg-brand-red/20 rounded-full blur-3xl group-hover:bg-brand-red/30 transition duration-700 pointer-events-none"></div>
+                <h2 class="text-3xl md:text-5xl lg:text-6xl font-heading font-black text-gray-900 dark:text-white mb-4 leading-tight relative z-10 transition-colors">Discover New <br>Royal Corridors.</h2>
+                <p class="text-gray-700 dark:text-gray-300 text-lg max-w-md mb-8 relative z-10 transition-colors font-medium">Explore 50+ inter-city routes mapped with luxury stops and premium boarding points.</p>
+                <div class="bg-gray-900 dark:bg-white text-white dark:text-black font-bold px-8 py-3.5 rounded-xl w-fit group-hover:bg-brand-red group-hover:dark:bg-brand-red group-hover:text-white transition shadow-xl relative z-10 flex items-center gap-2 transform group-hover:-translate-y-1">Explore Network <i class="fa-solid fa-arrow-right"></i></div>
+            </a>
+
+            <a href="{{ url_for('search_bus') }}" class="glass-card rounded-3xl p-10 flex flex-col items-center justify-center text-center border border-yellow-300 dark:border-brand-gold/30 cursor-pointer group shadow-xl transition-colors">
+                <div class="w-24 h-24 bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-200 dark:border-brand-gold/20 rounded-full flex items-center justify-center text-4xl text-yellow-600 dark:text-brand-gold mb-6 shadow-inner group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-couch"></i></div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">Seat Architect</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 transition-colors font-medium">Preview ergonomic berths and interactive 36-seat layouts.</p>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- ========================================== -->
+<!-- PASSENGER SOS EMERGENCY MODAL -->
+<!-- ========================================== -->
+<div id="sosModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0 px-4">
+    <div class="bg-white dark:bg-[#0f172a] border border-red-500/30 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl dark:shadow-[0_0_40px_rgba(220,38,38,0.2)] transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center mb-5 border-b border-gray-200 dark:border-white/5 pb-3">
+            <h3 class="text-xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation animate-pulse"></i> Passenger SOS</h3>
+            <button type="button" onclick="closeSOSModal()" class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+
+        <div class="flex gap-4 mb-6">
+            <a href="tel:100" class="flex-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-800 dark:text-white rounded-xl p-3 flex flex-col items-center justify-center transition-colors text-center shadow-sm">
+                <i class="fa-solid fa-phone text-red-500 text-lg mb-1"></i>
+                <span class="text-[10px] uppercase font-bold text-gray-500">Police</span>
+                <span class="font-bold">100</span>
+            </a>
+            <a href="tel:108" class="flex-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-800 dark:text-white rounded-xl p-3 flex flex-col items-center justify-center transition-colors text-center shadow-sm">
+                <i class="fa-solid fa-truck-medical text-red-500 text-lg mb-1"></i>
+                <span class="text-[10px] uppercase font-bold text-gray-500">Ambulance</span>
+                <span class="font-bold">108</span>
+            </a>
+        </div>
+
+        <form method="POST" action="{{ url_for('passenger_emergency') }}" class="space-y-4">
+            <div>
+                <label for="issue_type" class="block text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1 transition-colors">Emergency Type</label>
+                <select name="issue_type" id="issue_type" class="royal-input" style="padding: 12px; font-size: 0.875rem;" required>
+                    <option value="" disabled selected>-- Select Type --</option>
+                    <option value="Medical Emergency">Medical Emergency</option>
+                    <option value="Harassment / Safety">Harassment / Safety Issue</option>
+                    <option value="Accident">Bus Accident</option>
+                    <option value="Other">Other Critical Issue</option>
+                </select>
+            </div>
+            <div>
+                <label for="pnr" class="block text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1 transition-colors">Current Journey (Optional)</label>
+                <select name="pnr" id="pnr" class="royal-input" style="padding: 12px; font-size: 0.875rem;">
+                    <option value="N/A" selected>I am not currently on a trip</option>
+                    {% if active_bookings %}
+                        {% for b in active_bookings %}
+                            <option value="{{ b.pnr }}">{{ b.pnr }} : {{ b.route }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            <div>
+                <label for="message" class="block text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1 transition-colors">Details & Location</label>
+                <textarea name="message" id="message" rows="3" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white rounded-lg p-3 text-sm outline-none focus:border-red-500 transition-colors resize-none" placeholder="Share your location and details..." required></textarea>
+            </div>
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition shadow-lg shadow-red-900/50 flex justify-center items-center gap-2 mt-2">
+                <i class="fa-solid fa-satellite-dish"></i> Send SOS Alert
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- CUSTOM ALERT MODAL (Standard Validation) -->
+<!-- ========================================== -->
+<div id="custom-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-gray-200 dark:border-white/10 p-6 md:p-8 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col items-center text-center">
+
+        <div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-brand-gold mb-4 shadow-inner">
+            <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+        </div>
+
+        <h3 id="alert-modal-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Notice</h3>
+        <p id="alert-modal-message" class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+            Message goes here.
+        </p>
+
+        <button type="button" onclick="closeAlertModal()" class="w-full px-6 py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold shadow-lg transition-colors">
+            Understood
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. Mouse Parallax for Background
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        if(!bg) return;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 80;
+        const dy = (cy - e.pageY) / 80;
+
+        bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+
+    // 2. Scroll Reveal Animations
+    const observerOptions = { threshold: 0.1 };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // 3. Custom SOS Modal Logic
+    function openSOSModal() {
+        const modal = document.getElementById('sosModal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeSOSModal() {
+        const modal = document.getElementById('sosModal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // 4. Custom General Alert Modal Logic
+    function openAlertModal(title, message) {
+        document.getElementById('alert-modal-title').innerText = title;
+        document.getElementById('alert-modal-message').innerText = message;
+
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeAlertModal() {
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // 5. Form Validation & Swapping Logic (Now using Custom Modal)
+    function validateCities() {
+        const sourceSelect = document.getElementById('source');
+        const destSelect = document.getElementById('destination');
+
+        if (sourceSelect.value && destSelect.value && sourceSelect.value === destSelect.value) {
+            openAlertModal("Invalid Route", "Origin and Destination cities cannot be the same. Please choose a different destination.");
+            destSelect.value = ""; // Reset destination
+        }
+    }
+
+    function validateForm() {
+        const sourceSelect = document.getElementById('source');
+        const destSelect = document.getElementById('destination');
+        if (sourceSelect.value === destSelect.value) {
+            openAlertModal("Invalid Route", "Please choose a valid destination different from your origin before searching.");
+            return false;
+        }
+        return true;
+    }
+
+    function swapCities() {
+        const sourceSelect = document.getElementById('source');
+        const destSelect = document.getElementById('destination');
+
+        if (sourceSelect && destSelect) {
+            const tempValue = sourceSelect.value;
+            sourceSelect.value = destSelect.value;
+            destSelect.value = tempValue;
+            validateCities(); // Re-validate after swap to trigger modal if needed
+        }
+    }
+</script>
+{% endblock %}

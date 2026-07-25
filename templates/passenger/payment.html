@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+
+{% block title %}Secure Checkout | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (LIGHT & DARK IMAGES) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        pointer-events: none;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Clean, premium modern payment aesthetic) */
+        background-image: url('https://images.unsplash.com/photo-1614680376593-902f74ca0d41?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Light Mode Overlay */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.7) !important; /* 70% white tint to keep the form highly readable */
+        backdrop-filter: blur(12px) !important; /* Stronger blur so card details pop out */
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Sleek, moody secure digital finance) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.75) !important; /* 75% dark slate tint */
+        backdrop-filter: blur(12px) !important;
+    }
+
+    /* ── Glassmorphism layer ───────────────────────────── */
+    .glass {
+        backdrop-filter: blur(24px);
+        transition: all 0.3s ease;
+    }
+    .dark .glass {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    html:not(.dark) .glass {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+    }
+
+    /* ── Inputs ───────────────────────────────────────── */
+    .rzp-input {
+        padding: 13px 16px; border-radius: 12px; width: 100%;
+        font-family: inherit; font-size: 15px; outline: none; transition: all .25s;
+    }
+
+    .dark .rzp-input {
+        background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.09); color: #fff;
+    }
+    .dark .rzp-input:focus { border-color: #d84e55; box-shadow: 0 0 0 3px rgba(216, 78, 85, .13); background: rgba(0, 0, 0, 0.65); }
+    .dark .rzp-input::placeholder { color: rgba(255, 255, 255, .28); }
+
+    html:not(.dark) .rzp-input {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+    }
+    html:not(.dark) .rzp-input:focus { border-color: #d84e55; box-shadow: 0 0 0 3px rgba(216, 78, 85, .13); }
+    html:not(.dark) .rzp-input::placeholder { color: #94a3b8; }
+
+    /* ── Method tabs ──────────────────────────────────── */
+    .m-tab {
+        flex: 1; padding: 14px 8px; border-radius: 14px; font-size: 13px; font-weight: 700;
+        cursor: pointer; transition: all .25s; display: flex;
+        flex-direction: column; align-items: center; gap: 6px;
+    }
+
+    .dark .m-tab {
+        border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .03); color: #94a3b8;
+    }
+    .dark .m-tab:hover { color: #fff; border-color: rgba(255, 255, 255, .2); }
+    .dark .m-tab.active { border-color: #d84e55; background: rgba(216, 78, 85, .1); color: #fff; }
+
+    html:not(.dark) .m-tab {
+        border: 1px solid #e2e8f0; background: rgba(248, 250, 252, 0.8); color: #64748b;
+    }
+    html:not(.dark) .m-tab:hover { color: #0f172a; border-color: #cbd5e1; }
+    html:not(.dark) .m-tab.active { border-color: #d84e55; background: rgba(216, 78, 85, .1); color: #d84e55; }
+
+    /* ── Pay button ───────────────────────────────────── */
+    #payBtn {
+        width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800;
+        background: #d84e55; color: #fff; cursor: pointer; border: none;
+        box-shadow: 0 6px 20px rgba(216, 78, 85, .35); transition: all .25s;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    #payBtn:hover:not(:disabled) { background: #c23a41; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(216, 78, 85, .45); }
+    #payBtn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* ── Card preview widget ──────────────────────────── */
+    .card-preview {
+        border-radius: 18px; padding: 24px; position: relative; overflow: hidden; margin-bottom: 22px;
+        transition: all 0.3s ease;
+    }
+
+    .dark .card-preview {
+        background: linear-gradient(135deg, #1c1c28, #252535);
+        border: 1px solid rgba(255, 255, 255, .07);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    html:not(.dark) .card-preview {
+        background: linear-gradient(135deg, #334155, #0f172a);
+        border: 1px solid rgba(0, 0, 0, .1);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .card-preview::before {
+        content: ''; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px;
+        background: radial-gradient(circle, rgba(216, 78, 85, .25), transparent 70%); border-radius: 50%;
+    }
+
+    /* ── Trust strip ──────────────────────────────────── */
+    .trust-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+    /* ── Processing overlay ───────────────────────────── */
+    #processingOverlay {
+        position: fixed; inset: 0; backdrop-filter: blur(16px);
+        display: none; align-items: center; justify-content: center; z-index: 9999;
+        flex-direction: column; gap: 16px;
+    }
+
+    .dark #processingOverlay { background: rgba(15, 23, 42, .92); }
+    html:not(.dark) #processingOverlay { background: rgba(255, 255, 255, .92); }
+
+    #processingOverlay.show { display: flex; }
+
+    .spin { width: 56px; height: 56px; border: 4px solid rgba(255, 255, 255, .1); border-top-color: #d84e55; border-radius: 50%; animation: spin .75s linear infinite; }
+    html:not(.dark) .spin { border-color: rgba(0,0,0,0.1); border-top-color: #d84e55; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── UPI app pills ────────────────────────────────── */
+    .upi-pill {
+        display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+        border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer;
+        transition: all .2s;
+    }
+
+    .dark .upi-pill { border: 1px solid rgba(255, 255, 255, .08); color: #aaa; background: rgba(255, 255, 255, .03); }
+    .dark .upi-pill:hover { border-color: #d84e55; color: #fff; }
+    .dark .upi-pill.active-pill { border-color: #d84e55; color: #fff; background: rgba(216, 78, 85, 0.1); }
+
+    html:not(.dark) .upi-pill { border: 1px solid #e2e8f0; color: #64748b; background: rgba(248, 250, 252, 0.8); }
+    html:not(.dark) .upi-pill:hover { border-color: #d84e55; color: #0f172a; }
+    html:not(.dark) .upi-pill.active-pill { border-color: #d84e55; color: #d84e55; background: rgba(216, 78, 85, 0.1); }
+
+    .animate-up { animation: aup .6s cubic-bezier(.16, 1, .3, 1) both; }
+    @keyframes aup { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Parallax Background -->
+<div class="hero-bg" id="hero-bg"></div>
+
+<div id="processingOverlay">
+    <div class="spin"></div>
+    <p class="text-gray-900 dark:text-white text-xl font-black mt-2 tracking-tight" id="overlayText">Authenticating with Bank…</p>
+    <p class="text-gray-500 font-medium text-sm">Please do not close or refresh this page.</p>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 md:px-6 pt-24 pb-24 relative z-10">
+
+    <div class="flex items-center justify-between mb-8 animate-up">
+        <div class="flex items-center gap-3">
+            <a href="javascript:history.back()"
+               class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/50 dark:bg-black/30 border border-gray-200 dark:border-white/10
+                      text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:dark:text-white hover:bg-white dark:hover:bg-black/60 transition shadow-sm">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <div>
+                <h1 class="text-3xl font-black tracking-tight text-gray-900 dark:text-white transition-colors">Secure Checkout</h1>
+                <p class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-widest transition-colors">Simulated Gateway · 256-bit SSL</p>
+            </div>
+        </div>
+        <div class="hidden md:flex items-center gap-2 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/25 px-4 py-2 rounded-xl transition-colors shadow-sm">
+            <i class="fa-solid fa-shield-check text-green-600 dark:text-green-400 text-sm"></i>
+            <span class="text-green-600 dark:text-green-400 text-[11px] font-bold uppercase tracking-widest transition-colors">Bank Secured</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-up" style="animation-delay:.08s">
+
+        <div class="lg:col-span-3 glass rounded-3xl p-6 md:p-10">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-white/10 pb-4 transition-colors">
+                Choose Payment Method
+            </h2>
+
+            <div class="flex gap-4 mb-8" id="methodTabs">
+                <button class="m-tab active" id="tab-upi" onclick="switchMethod('upi')">
+                    <i class="fa-solid fa-mobile-screen text-green-500 dark:text-green-400 text-xl mb-1"></i>UPI App
+                </button>
+                <button class="m-tab" id="tab-card" onclick="switchMethod('card')">
+                    <i class="fa-regular fa-credit-card text-blue-500 dark:text-blue-400 text-xl mb-1"></i>Credit / Debit
+                </button>
+                <button class="m-tab" id="tab-cash" onclick="switchMethod('cash')">
+                    <i class="fa-solid fa-money-bill-wave text-yellow-500 dark:text-yellow-400 text-xl mb-1"></i>Cash
+                </button>
+            </div>
+
+            <div id="panel-upi">
+                <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-5 transition-colors">
+                    Pay instantly from any UPI app. Choose your provider or enter your ID directly.
+                </p>
+
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <button type="button" class="upi-pill shadow-sm {% if not saved_payment or saved_payment.upi_provider == 'Google Pay' or not saved_payment.upi_provider %}active-pill{% endif %}" id="pill-gpay" onclick="selectUpi('Google Pay', '@okaxis', this)">
+                        <i class="fa-brands fa-google text-[#4285F4]"></i>Google Pay
+                    </button>
+                    <button type="button" class="upi-pill shadow-sm {% if saved_payment and saved_payment.upi_provider == 'PhonePe' %}active-pill{% endif %}" id="pill-phonepe" onclick="selectUpi('PhonePe', '@ybl', this)">
+                        <i class="fa-solid fa-p text-[#5F259F]"></i>PhonePe
+                    </button>
+                    <button type="button" class="upi-pill shadow-sm {% if saved_payment and saved_payment.upi_provider == 'Paytm' %}active-pill{% endif %}" id="pill-paytm" onclick="selectUpi('Paytm', '@paytm', this)">
+                        <i class="fa-solid fa-wallet text-[#00b9f5]"></i>Paytm
+                    </button>
+                </div>
+
+                <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1 transition-colors">
+                    Your UPI ID
+                </label>
+                <div class="relative">
+                    <label for="upiId" class="sr-only">UPI ID</label>
+                    <input id="upiId" type="text" class="rzp-input pr-24 shadow-inner" placeholder="yourname@okaxis" value="{{ saved_payment.upi_id if saved_payment and saved_payment.upi_id else '' }}">
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold
+                                 text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-white/10 px-2.5 py-1 rounded transition-colors tracking-widest">VERIFY</span>
+                </div>
+            </div>
+
+            <div id="panel-card" class="hidden">
+                <div class="card-preview shadow-2xl">
+                    <div class="flex justify-between items-start mb-6 relative z-10">
+                        <i class="fa-solid fa-microchip text-3xl text-gray-400 drop-shadow-md"></i>
+                        <span id="cardNetwork" class="font-bold text-white text-2xl opacity-80 font-mono tracking-wider italic">VISA</span>
+                    </div>
+                    <p class="text-2xl md:text-3xl font-mono tracking-[.15em] md:tracking-[.2em] text-white mb-6 relative z-10 drop-shadow-md" id="previewNum">
+                        {{ saved_payment.card_number if saved_payment and saved_payment.card_number else '•••• •••• •••• ••••' }}
+                    </p>
+                    <div class="flex justify-between relative z-10">
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Card Holder</p>
+                            <p id="previewName" class="text-base font-bold text-white uppercase tracking-wider mt-1 drop-shadow-md">
+                                {{ saved_payment.name_on_card if saved_payment and saved_payment.name_on_card else 'YOUR NAME' }}
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Expires</p>
+                            <p id="previewExpiry" class="text-base font-bold text-white mt-1 font-mono drop-shadow-md">
+                                {{ saved_payment.card_expiry if saved_payment and saved_payment.card_expiry else 'MM/YY' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1 transition-colors">Name on Card</label>
+                        <label for="cardName" class="sr-only">Name on Card</label>
+                        <input id="cardName" type="text" class="rzp-input uppercase shadow-inner" placeholder="John Doe" value="{{ saved_payment.name_on_card if saved_payment and saved_payment.name_on_card else '' }}"
+                               oninput="document.getElementById('previewName').textContent = this.value.toUpperCase() || 'YOUR NAME'">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1 transition-colors">Card Number</label>
+                        <div class="relative">
+                            <label for="cardNumber" class="sr-only">Card Number</label>
+                            <input id="cardNumber" type="text" class="rzp-input pl-12 font-mono tracking-widest shadow-inner" placeholder="0000 0000 0000 0000"
+                                   maxlength="19" oninput="fmtCard(this)" value="{{ saved_payment.card_number if saved_payment and saved_payment.card_number else '' }}">
+                            <i class="fa-regular fa-credit-card absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"></i>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1 transition-colors">Expiry</label>
+                            <label for="cardExpiry" class="sr-only">Card Expiry Date</label>
+                            <input id="cardExpiry" type="text" class="rzp-input text-center font-mono tracking-widest shadow-inner" placeholder="MM / YY"
+                                   maxlength="7" oninput="fmtExpiry(this)" value="{{ saved_payment.card_expiry if saved_payment and saved_payment.card_expiry else '' }}">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1 transition-colors">CVV</label>
+                            <label for="cardCvv" class="sr-only">Card CVV</label>
+                            <div class="relative">
+                                <input id="cardCvv" type="password" class="rzp-input text-center font-mono tracking-widest shadow-inner" placeholder="•••" maxlength="4" value="{{ saved_payment.card_cvv if saved_payment and saved_payment.card_cvv else '' }}">
+                                <i class="fa-solid fa-lock absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 text-[10px]"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-cash" class="hidden">
+                <div class="bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 rounded-2xl p-8 text-center mt-4 transition-colors shadow-inner">
+                    <div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-500/20 flex items-center justify-center text-yellow-600 dark:text-brand-gold mx-auto mb-5 shadow-sm">
+                        <i class="fa-solid fa-money-bill-wave text-3xl"></i>
+                    </div>
+                    <h3 class="text-gray-900 dark:text-white font-bold text-xl mb-2 transition-colors">Pay at Boarding</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium transition-colors max-w-sm mx-auto">
+                        Your seat will be reserved immediately. You will be required to pay the exact amount in cash to the conductor when boarding.
+                    </p>
+                    <div class="bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 uppercase tracking-widest shadow-sm transition-colors">
+                        <i class="fa-solid fa-circle-info"></i> Note: Cash Bookings are NON-REFUNDABLE
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="lg:col-span-2">
+            <div class="glass rounded-3xl p-6 md:p-8 sticky top-28 shadow-xl">
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-6 p-4 rounded-xl flex items-start gap-3 {% if category == 'danger' %}bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400{% endif %} transition-colors shadow-sm">
+                                <i class="fa-solid {% if category == 'danger' %}fa-circle-xmark{% else %}fa-circle-check{% endif %} mt-0.5"></i>
+                                <span class="text-xs font-bold">{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <h3 class="text-lg font-black text-gray-900 dark:text-white border-b border-gray-200 dark:border-white/10 pb-4 mb-6 transition-colors tracking-tight">
+                    Booking Summary
+                </h3>
+
+                <div class="bg-gray-50/80 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-2xl p-5 mb-6 transition-colors shadow-inner">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="font-black text-brand-red text-lg">{{ journey.source }}</span>
+                        <div class="flex-1 flex items-center justify-center px-2">
+                            <div class="h-px bg-gray-300 dark:bg-gray-600 w-full relative flex justify-center">
+                                <i class="fa-solid fa-bus text-[10px] text-gray-400 dark:text-gray-500 absolute -top-1.5 bg-gray-50 dark:bg-[#151b2b] px-1"></i>
+                            </div>
+                        </div>
+                        <span class="font-black text-brand-red text-lg">{{ journey.destination }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 transition-colors font-medium">
+                        <p><i class="fa-regular fa-calendar text-gray-400 dark:text-gray-500 mr-1.5"></i>{% if journey.date %}{{ journey.date.strftime('%d %b %Y') if journey.date is not string else journey.date }}{% endif %}</p>
+                        <p class="font-mono text-[10px] bg-gray-200 dark:bg-white/10 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ journey.bus }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mb-6 transition-colors bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-4 rounded-xl shadow-sm">
+                    <span class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">Assigned Seats</span>
+                    <span class="text-sm font-mono font-bold text-brand-red dark:text-brand-gold tracking-widest">
+                        {{ seat_numbers }}
+                    </span>
+                </div>
+
+                <div class="space-y-4 border-t border-gray-200 dark:border-white/10 pt-5 mb-6 transition-colors">
+                    <div class="flex justify-between text-sm transition-colors font-medium">
+                        <span class="text-gray-500 dark:text-gray-400">Base Fare</span>
+                        <span class="font-bold text-gray-900 dark:text-white font-mono">₹ {{ "%.2f"|format(base_amount) }}</span>
+                    </div>
+
+                    {% if discount_amount and discount_amount > 0 %}
+                    <div class="flex justify-between text-sm transition-colors">
+                        <span class="text-yellow-600 dark:text-brand-gold font-bold"><i class="fa-solid fa-tag mr-1 text-[10px]"></i> Promo Applied</span>
+                        <span class="font-bold text-yellow-600 dark:text-brand-gold font-mono">- ₹ {{ "%.2f"|format(discount_amount) }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex justify-between text-sm transition-colors font-medium">
+                        <span class="text-gray-500 dark:text-gray-400">Taxes & Fees (5%)</span>
+                        <span class="font-bold text-gray-900 dark:text-white font-mono">₹ {{ "%.2f"|format(tax) }}</span>
+                    </div>
+                </div>
+
+                <div class="flex items-end justify-between border-t-2 border-dashed border-gray-200 dark:border-white/20 pt-6 mb-8 transition-colors">
+                    <span class="font-black text-gray-900 dark:text-white uppercase tracking-widest text-xs transition-colors">Total Payable</span>
+                    <span class="text-4xl font-black text-brand-red tracking-tighter transition-colors drop-shadow-sm font-mono">
+                        ₹{{ "%.0f"|format(total_amount) }}
+                    </span>
+                </div>
+
+                <form id="simulatedPaymentForm" action="{{ url_for('process_payment') }}" method="POST">
+                    <input type="hidden" name="schedule_id" value="{{ schedule_id }}">
+                    <input type="hidden" name="seat_numbers" value="{{ seat_numbers }}">
+                    <input type="hidden" name="total_amount" value="{{ total_amount }}">
+                    <input type="hidden" name="offer_id" value="{{ offer_id or '' }}">
+                    <input type="hidden" name="discount_amount" value="{{ discount_amount or 0 }}">
+
+                    <input type="hidden" name="payment_method" id="payment_method_input" value="UPI (Google Pay)">
+
+                    <button type="button" id="payBtn" onclick="simulatePayment()">
+                        <i class="fa-solid fa-lock text-sm"></i>
+                        <span id="btnText">Pay ₹ {{ "%.2f"|format(total_amount) }}</span>
+                    </button>
+                </form>
+
+                <div class="flex justify-around mt-6 pt-5 border-t border-gray-200 dark:border-white/5 transition-colors">
+                    <div class="trust-item opacity-70 hover:opacity-100 transition-opacity">
+                        <i class="fa-solid fa-shield-halved text-green-600 dark:text-green-400 text-xl mb-1"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">SSL Secure</span>
+                    </div>
+                    <div class="trust-item opacity-70 hover:opacity-100 transition-opacity">
+                        <i class="fa-brands fa-cc-visa text-blue-600 dark:text-blue-400 text-2xl mb-1"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Visa/MC</span>
+                    </div>
+                    <div class="trust-item opacity-70 hover:opacity-100 transition-opacity">
+                        <i class="fa-solid fa-mobile-screen text-green-600 dark:text-green-400 text-xl mb-1"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">UPI Ready</span>
+                    </div>
+                    <div class="trust-item opacity-70 hover:opacity-100 transition-opacity">
+                        <i class="fa-solid fa-rotate-left text-yellow-600 dark:text-brand-gold text-xl mb-1"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Refunds</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Subtle Mouse Parallax ──────────────────────────────────────────────────
+document.addEventListener('mousemove', (e) => {
+    const bg = document.getElementById('hero-bg');
+    if (!bg) return;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const dx = (cx - e.pageX) / 90;
+    const dy = (cy - e.pageY) / 90;
+    bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+});
+
+// ── Payment Selection Logic ────────────────────────────────────────────────
+// Dynamic default logic based on the user's saved profile
+let activeMethod = "upi";
+let activeUpiApp = "{% if saved_payment and saved_payment.upi_provider %}{{ saved_payment.upi_provider }}{% else %}Google Pay{% endif %}";
+
+// Fire this on page load to ensure the hidden input is set correctly if they have a saved UPI
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('payment_method_input').value = 'UPI (' + activeUpiApp + ')';
+
+    // Automatically trigger the formatter if they had a saved card
+    const cardInput = document.getElementById("cardNumber");
+    if(cardInput && cardInput.value) {
+        fmtCard(cardInput);
+    }
+});
+
+function switchMethod(m) {
+    activeMethod = m;
+    ["upi","card","cash"].forEach(k => {
+        document.getElementById("panel-"+k).classList.add("hidden");
+        document.getElementById("tab-"+k).classList.remove("active");
+    });
+    document.getElementById("panel-"+m).classList.remove("hidden");
+    document.getElementById("tab-"+m).classList.add("active");
+
+    const btnText = document.getElementById('btnText');
+    const payBtn = document.getElementById('payBtn');
+    const total = '{{ "%.2f"|format(total_amount) }}';
+
+    if(m === 'card') {
+        document.getElementById('payment_method_input').value = 'Credit/Debit Card';
+        btnText.innerText = 'Pay ₹ ' + total;
+        payBtn.style.background = '#d84e55';
+    } else if(m === 'cash') {
+        document.getElementById('payment_method_input').value = 'Cash';
+        btnText.innerText = 'Confirm Cash Booking';
+        payBtn.style.background = '#eab308'; // Make the button yellow for Cash
+    } else {
+        document.getElementById('payment_method_input').value = 'UPI (' + activeUpiApp + ')';
+        btnText.innerText = 'Pay ₹ ' + total;
+        payBtn.style.background = '#d84e55';
+    }
+}
+
+function selectUpi(appName, suffix, btnElement) {
+    activeUpiApp = appName;
+    document.getElementById('payment_method_input').value = 'UPI (' + appName + ')';
+
+    document.querySelectorAll('.upi-pill').forEach(el => {
+        el.classList.remove('active-pill');
+    });
+    btnElement.classList.add('active-pill');
+
+    const upiInput = document.getElementById('upiId');
+    if(!upiInput.value || upiInput.value.includes('@')) {
+        upiInput.value = 'yourname' + suffix;
+    }
+}
+
+// ── Card input formatters ──────────────────────────────────────────────────
+function fmtCard(inp) {
+    const raw = inp.value.replace(/\D/g,"").substring(0,16);
+    inp.value = raw.replace(/(.{4})/g,"$1 ").trim();
+    document.getElementById("previewNum").textContent = (raw + "••••••••••••••••").substring(0, 16).replace(/(.{4})/g, "$1 ").trim();
+    const net = document.getElementById("cardNetwork");
+    if (raw[0]==="4")      net.textContent="VISA";
+    else if ("25".includes(raw[0])) net.textContent="MC";
+    else if (raw[0]==="6") net.textContent="RuPay";
+    else if (raw[0]==="3") net.textContent="AMEX";
+    else                   net.textContent="CARD";
+}
+function fmtExpiry(inp) {
+    const raw = inp.value.replace(/\D/g,"").substring(0,4);
+    inp.value = raw.length>=2 ? raw.substring(0,2)+" / "+raw.substring(2) : raw;
+    document.getElementById("previewExpiry").textContent = inp.value || "MM/YY";
+}
+
+// ── SIMULATED PAYMENT ENGINE ─────────────────────────────────────────────
+function simulatePayment() {
+    if (activeMethod === "upi") {
+        const upi = document.getElementById("upiId").value.trim();
+        if (!upi) { alert("Please enter your UPI ID."); return; }
+    } else if (activeMethod === "card") {
+        const card = document.getElementById("cardNumber").value.trim();
+        if (card.length < 18) { alert("Please enter a valid 16-digit card number."); return; }
+    }
+    // No validation needed for Cash!
+
+    const btn = document.getElementById("payBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+
+    const overlay = document.getElementById("processingOverlay");
+    const overlayText = document.getElementById("overlayText");
+    overlay.classList.add("show");
+
+    // Dynamic text based on method
+    if (activeMethod === 'cash') {
+        overlayText.textContent = "Securing your seats...";
+    } else {
+        overlayText.textContent = "Authenticating with Bank...";
+    }
+
+    setTimeout(() => {
+        if (activeMethod === 'cash') {
+            overlayText.textContent = "Finalizing Cash Booking...";
+        } else {
+            overlayText.textContent = "Processing Transaction...";
+        }
+
+        setTimeout(() => {
+            overlayText.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 dark:text-green-400 mb-3 text-5xl"></i><br>Booking Confirmed!';
+
+            setTimeout(() => {
+                document.getElementById("simulatedPaymentForm").submit();
+            }, 1000);
+
+        }, 1500);
+    }, 1500);
+}
+</script>
+{% endblock %}

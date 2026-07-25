@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Passenger Details | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (LIGHT & DARK IMAGES) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        pointer-events: none;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Bright scenic highway - Preparing for the journey) */
+        background-image: url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Light Mode Overlay */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.75);
+        backdrop-filter: blur(4px);
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Moody night journey) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1476994230281-1448088947db?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.85);
+    }
+
+    /* Glass Cards */
+    .glass-card {
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        transition: all 0.3s;
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Royal Input */
+    html:not(.dark) .royal-input { background: white; border: 1px solid #e2e8f0; color: #0f172a; padding: 14px 16px; border-radius: 12px; width: 100%; transition: all 0.3s; font-size: 0.9rem; outline: none; }
+    html:not(.dark) .royal-input:focus { border-color: #d84e55; box-shadow: 0 0 0 3px rgba(216,78,85,0.1); }
+
+    .dark .royal-input { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 14px 16px; border-radius: 12px; width: 100%; transition: all 0.3s; font-size: 0.9rem; outline: none; }
+    .dark .royal-input:focus { border-color: #d84e55; background: rgba(0,0,0,0.6); box-shadow: 0 0 0 3px rgba(216,78,85,0.15); }
+
+    select.royal-input option { background-color: #ffffff; color: #0f172a; }
+    .dark select.royal-input option { background-color: #0f172a; color: white; }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-bg" id="hero-bg"></div>
+
+<div class="container mx-auto px-6 py-10 relative z-10">
+
+    <div class="max-w-6xl mx-auto mb-8 flex items-center justify-center md:justify-start gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-500 animate-slide-up">
+        <span class="text-brand-red"><i class="fa-solid fa-check-circle mr-1"></i> Seats</span>
+        <div class="w-8 h-px bg-gray-300 dark:bg-white/20"></div>
+        <span class="text-gray-900 dark:text-white border-b-2 border-brand-red pb-1 transition-colors">Details</span>
+        <div class="w-8 h-px bg-gray-300 dark:bg-white/20"></div>
+        <span class="transition-colors">Payment</span>
+    </div>
+
+    <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 items-start">
+
+        <div class="w-full lg:w-2/3 space-y-6 animate-slide-up" style="animation-delay: 0.1s;">
+            <!-- Added 'novalidate' to prevent ugly native browser alerts, and hooked up custom JS validator -->
+            <form id="details-form" action="{{ url_for('payment') }}" method="POST" novalidate onsubmit="validateBookingForm(event)">
+
+                <input type="hidden" name="schedule_id" value="{{ schedule_id }}">
+                <input type="hidden" name="seat_numbers" value="{{ seat_numbers }}">
+                <input type="hidden" name="total_amount" value="{{ total_amount }}">
+
+                <div class="glass-card p-6 md:p-8 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors"><i class="fa-solid fa-envelope text-yellow-500 dark:text-brand-gold mr-2"></i> Contact Details</h2>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-6 transition-colors">Your E-Ticket and tracking links will be sent to these details.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label for="contact_email" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Email Address</label>
+                            <input type="email" id="contact_email" name="contact_email" value="{{ contact.email }}" class="royal-input" placeholder="john@example.com" required>
+                        </div>
+                        <div>
+                            <label for="contact_mobile" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Mobile Number</label>
+                            <div class="relative">
+                                <!-- Added z-10 for safety -->
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold z-10 pointer-events-none">+91</span>
+                                <!-- FIXED: Used !pl-12 to prevent text overlapping -->
+                                <input type="tel" id="contact_mobile" name="contact_mobile" value="{{ contact.mobile }}" pattern="[0-9]{10}" class="royal-input !pl-12" placeholder="9876543210" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 md:p-8 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors"><i class="fa-solid fa-users text-blue-500 dark:text-brand-blue mr-2"></i> Passenger Info</h2>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-6 transition-colors">Please enter details exactly as they appear on your Government ID.</p>
+
+                    <div class="space-y-5">
+                        {% for seat in seat_list %}
+                        <div class="bg-gray-100/50 dark:bg-black/30 border border-gray-200 dark:border-white/5 rounded-xl p-5 relative overflow-hidden group transition-all hover:bg-gray-100 dark:hover:bg-black/50">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500 dark:bg-brand-blue group-hover:bg-brand-red transition-colors"></div>
+
+                            <p class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center transition-colors">
+                                Passenger {{ loop.index }}
+                                <span class="ml-3 bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white font-mono text-[10px] px-2 py-1 rounded transition-colors">Seat {{ seat }}</span>
+                            </p>
+
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div class="md:col-span-6">
+                                    <label for="passenger_name_{{ loop.index }}" class="sr-only">Full Name</label>
+                                    <input type="text" id="passenger_name_{{ loop.index }}" name="passenger_name_{{ loop.index }}" placeholder="Full Name" class="royal-input" required value="{{ contact.name if loop.first and contact.name else '' }}">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label for="passenger_age_{{ loop.index }}" class="sr-only">Age</label>
+                                    <input type="number" id="passenger_age_{{ loop.index }}" name="passenger_age_{{ loop.index }}" placeholder="Age" min="1" max="110" class="royal-input" required value="{{ contact.age if loop.first and contact.age else '' }}">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label for="passenger_gender_{{ loop.index }}" class="sr-only">Gender</label>
+                                    <select id="passenger_gender_{{ loop.index }}" name="passenger_gender_{{ loop.index }}" class="royal-input" required>
+                                        {% if loop.first and contact.gender %}
+                                            <option value="" disabled>Gender</option>
+                                            {% if contact.gender == 'Male' %}<option value="Male" selected>Male</option>{% else %}<option value="Male">Male</option>{% endif %}
+                                            {% if contact.gender == 'Female' %}<option value="Female" selected>Female</option>{% else %}<option value="Female">Female</option>{% endif %}
+                                            {% if contact.gender == 'Other' %}<option value="Other" selected>Other</option>{% else %}<option value="Other">Other</option>{% endif %}
+                                        {% else %}
+                                            <option value="" disabled selected>Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 md:p-8">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors"><i class="fa-solid fa-tags text-brand-red mr-2"></i> Offers & Discounts</h2>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-6 transition-colors">Have a promo code? Enter it below to get a discount on your base fare.</p>
+
+                    <div>
+                        <label for="offer_code" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Promo Code (Optional)</label>
+                        <div class="relative">
+                            <!-- Added z-10 -->
+                            <i class="fa-solid fa-ticket absolute left-4 top-1/2 -translate-y-1/2 text-brand-red pointer-events-none z-10"></i>
+                            <!-- FIXED: Used !pl-12 to prevent text overlapping -->
+                            <input type="text" id="offer_code" name="offer_code" class="royal-input !pl-12 font-mono uppercase text-yellow-600 dark:text-brand-gold" placeholder="e.g. DIWALI20">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 hidden lg:block">
+                    <button type="submit" class="w-full bg-brand-red hover:bg-red-600 text-white font-bold text-lg py-4 rounded-xl shadow-[0_5px_20px_rgba(216,78,85,0.4)] transition flex items-center justify-center gap-2 transform hover:-translate-y-1">
+                        Proceed to Payment <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="w-full lg:w-1/3 animate-slide-up" style="animation-delay: 0.2s;">
+            <div class="glass-card p-6 md:p-8 sticky top-28 border-t-4 border-t-brand-red">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-white/5 pb-4 transition-colors">Journey Summary</h3>
+
+                <div class="mb-6">
+                    <p class="text-[10px] text-yellow-600 dark:text-brand-gold uppercase tracking-widest font-bold mb-1 transition-colors">{{ journey.operator }}</p>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 font-medium transition-colors">{{ journey.type }}</p>
+                </div>
+
+                <div class="flex items-center justify-between mb-6">
+                    <div class="text-left">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{{ journey.dep }}</p>
+                        <p class="text-xs text-gray-500 mt-1 transition-colors">{{ journey.source }}</p>
+                    </div>
+                    <div class="flex-1 flex justify-center px-4">
+                        <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-600 transition-colors"></i>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{{ journey.arr }}</p>
+                        <p class="text-xs text-gray-500 mt-1 transition-colors">{{ journey.destination }}</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-100 dark:bg-white/5 rounded-lg p-4 mb-6 text-sm flex justify-between items-center border border-gray-200 dark:border-white/5 transition-colors">
+                    <span class="text-gray-600 dark:text-gray-400 transition-colors">Journey Date</span>
+                    <span class="font-bold text-gray-900 dark:text-white transition-colors">{{ journey.date }}</span>
+                </div>
+
+                <div class="space-y-3 mb-6 border-t border-gray-200 dark:border-white/5 pt-6 text-sm transition-colors">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-gray-400 transition-colors">Selected Seats</span>
+                        <span class="font-mono text-gray-900 dark:text-white font-bold transition-colors">{{ seat_numbers }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-gray-400 transition-colors">Base Fare ({{ seat_list|length }} Tickets)</span>
+                        <span class="text-gray-900 dark:text-white font-bold transition-colors">₹ {{ total_amount }}</span>
+                    </div>
+                </div>
+
+                <!-- Uses form attribute to submit the main form and trigger JS validation -->
+                <button type="submit" form="details-form" class="lg:hidden w-full bg-brand-red hover:bg-red-600 text-white font-bold text-lg py-4 rounded-xl shadow-[0_5px_20px_rgba(216,78,85,0.4)] transition mt-4">
+                    Proceed to Payment
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- CUSTOM ALERT MODAL -->
+<!-- ========================================== -->
+<div id="custom-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-gray-200 dark:border-white/10 p-6 md:p-8 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col items-center text-center">
+
+        <div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-brand-gold mb-4 shadow-inner">
+            <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+        </div>
+
+        <h3 id="alert-modal-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Notice</h3>
+        <p id="alert-modal-message" class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+            Message goes here.
+        </p>
+
+        <button type="button" onclick="closeAlertModal()" class="w-full px-6 py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold shadow-lg transition-colors">
+            Understood
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Custom Modal Functions
+    function openAlertModal(title, message) {
+        document.getElementById('alert-modal-title').innerText = title;
+        document.getElementById('alert-modal-message').innerText = message;
+
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeAlertModal() {
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Custom Form Validation replacing the native browser alert
+    function validateBookingForm(event) {
+        event.preventDefault(); // Stop normal submission immediately
+
+        const form = document.getElementById('details-form');
+        const email = document.getElementById('contact_email').value.trim();
+        const mobile = document.getElementById('contact_mobile').value.trim();
+
+        if (!email) {
+            openAlertModal("Missing Contact Info", "Please provide a valid email address so we can send you the E-Ticket.");
+            return;
+        }
+
+        if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
+            openAlertModal("Invalid Mobile Number", "Please enter a valid 10-digit mobile number.");
+            return;
+        }
+
+        const requiredFields = form.querySelectorAll('input[required], select[required]');
+        let allValid = true;
+
+        for (let i = 0; i < requiredFields.length; i++) {
+            if (!requiredFields[i].value.trim()) {
+                allValid = false;
+                break;
+            }
+        }
+
+        if (!allValid) {
+            openAlertModal("Incomplete Passenger Details", "Please ensure all passenger names, ages, and genders are filled out correctly before proceeding.");
+            return;
+        }
+
+        // If all checks pass, submit programmatically
+        form.submit();
+    }
+
+    // Mouse Parallax for Background
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 80;
+        const dy = (cy - e.pageY) / 80;
+
+        if(bg) bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+</script>
+{% endblock %}

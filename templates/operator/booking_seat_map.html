@@ -1,0 +1,170 @@
+{% extends "operator/base_operator.html" %}
+
+{% block title %}Live Seat Map | {{ booking.pnr }}{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-5xl mx-auto pb-20">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
+        <div>
+            <a href="{{ url_for('operator_view_bookings') }}" class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold hover:text-brand-red transition-colors mb-3 inline-block"><i class="fa-solid fa-arrow-left mr-1"></i> Back to Ledger</a>
+            <h1 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                Passenger Seat Map
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 font-mono text-sm">Ticket: <span class="font-bold text-brand-red">{{ booking.pnr }}</span></p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <div class="lg:col-span-2 glass-card rounded-3xl p-8 border border-gray-200 dark:border-white/10 shadow-xl overflow-x-auto relative flex justify-center items-center bg-gray-50/50 dark:bg-[#0f172a]/50">
+            <div id="seat-grid" class="inline-grid gap-3 p-6 bg-white dark:bg-black/40 rounded-3xl border border-gray-200 dark:border-white/10 w-max shadow-inner relative">
+                </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="glass-card rounded-3xl p-6 border border-gray-200 dark:border-white/10 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-brand-red/10 rounded-bl-full pointer-events-none"></div>
+
+                <h3 class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-4">Passenger Details</h3>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ booking.full_name }}</h2>
+                <p class="text-xs font-mono font-bold text-brand-red mb-6 tracking-wider">SEATS: {{ booking.seat_numbers if booking.seat_numbers else 'None' }}</p>
+
+                <div class="space-y-4 border-t border-gray-200 dark:border-white/10 pt-4">
+                    <div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Route</p>
+                        <p class="text-sm font-bold text-gray-900 dark:text-white">{{ booking.source_city }} <i class="fa-solid fa-arrow-right text-[10px] text-gray-400 mx-1"></i> {{ booking.destination_city }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Date</p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ booking.travel_date }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Time</p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white font-mono">{{ booking.time }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Assigned Vehicle</p>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/20 text-gray-800 dark:text-white text-xs font-mono font-bold px-2 py-1 rounded">{{ booking.bus_number }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 border border-gray-200 dark:border-white/10 shadow-sm">
+                <h3 class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-4">Map Legend</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-red-500 border-2 border-red-600 flex items-center justify-center text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"><i class="fa-solid fa-user text-[10px]"></i></div>
+                        <span class="text-sm font-bold text-gray-900 dark:text-white">This Passenger</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-gray-300 dark:bg-gray-700 border-2 border-gray-400 dark:border-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 opacity-50"><i class="fa-solid fa-ban text-[10px]"></i></div>
+                        <span class="text-sm font-bold text-gray-500 dark:text-gray-400">Other Passengers</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-500/10 border-2 border-green-500 flex items-center justify-center text-green-500"><i class="fa-solid fa-chair text-[10px]"></i></div>
+                        <span class="text-sm font-bold text-gray-900 dark:text-white">Empty Seat</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const layoutData = {{ layout_data | tojson | safe }};
+        if(layoutData.length === 0) return;
+
+        let maxRow = -1, maxCol = -1;
+        layoutData.forEach(s => {
+            if(s.row > maxRow) maxRow = s.row;
+            if(s.col > maxCol) maxCol = s.col;
+        });
+
+        const grid = document.getElementById('seat-grid');
+        grid.style.gridTemplateRows = `repeat(${maxRow + 1}, minmax(0, 1fr))`;
+        grid.style.gridTemplateColumns = `repeat(${maxCol + 1}, minmax(0, 1fr))`;
+
+        const gridMap = Array(maxRow + 1).fill(null).map(() => Array(maxCol + 1).fill(null));
+        layoutData.forEach(s => gridMap[s.row][s.col] = s);
+
+        for(let r=0; r<=maxRow; r++) {
+            for(let c=0; c<=maxCol; c++) {
+                const cell = gridMap[r][c];
+                const div = document.createElement('div');
+
+                // If it's totally empty or erased, make a transparent blank box
+                if(!cell || cell.type === 'empty' || cell.type === 'erase') {
+                    div.className = 'w-12 h-12 md:w-16 md:h-16 opacity-0 pointer-events-none';
+                }
+                // Aisle Space
+                else if (cell.type === 'aisle') {
+                    div.className = 'w-12 h-12 md:w-16 md:h-16 pointer-events-none';
+                }
+                // Doors and Driver Seats
+                else if (cell.type === 'door' || cell.type === 'driver') {
+                    let styleClass = cell.type === 'driver'
+                        ? 'border-[#64748b] text-[#64748b] bg-[#64748b]/10 rounded-full'
+                        : 'border-[#f59e0b] text-[#f59e0b] bg-[#f59e0b]/10 rounded-xl';
+
+                    let iconClass = cell.type === 'driver' ? 'fa-dharmachakra' : 'fa-door-open';
+
+                    div.className = `w-12 h-12 md:w-16 md:h-16 flex flex-col items-center justify-center border-2 opacity-80 ${styleClass}`;
+                    div.innerHTML = `<i class="fa-solid ${iconClass} text-xl"></i>`;
+                }
+                // Actual Passenger Seats (Seater, Sleeper, Ladies)
+                else {
+                    let baseClasses = 'w-12 h-12 md:w-16 md:h-16 flex flex-col items-center justify-center rounded-xl border-2 text-[10px] md:text-xs font-bold transition-all relative overflow-hidden ';
+
+                    // Specific sizing for Sleeper seats
+                    if(cell.type === 'sleeper') {
+                        baseClasses = baseClasses.replace('h-12', 'h-[110px]').replace('md:h-16', 'md:h-[135px]') + ' justify-start pt-3 z-10 ';
+                    }
+
+                    // 1. THIS PASSENGER'S SEAT (Pulsing Red)
+                    if(cell.status === 'user_booked') {
+                        baseClasses += 'bg-red-500 border-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] z-20 scale-105';
+                    }
+                    // 2. OTHER PASSENGERS (Muted Grey)
+                    else if(cell.status === 'other_booked') {
+                        baseClasses += 'bg-gray-300 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-gray-500 dark:text-gray-400 opacity-50 cursor-not-allowed';
+                    }
+                    // 3. AVAILABLE SEATS (Native Layout Colors)
+                    else {
+                        if(cell.type === 'seater') baseClasses += 'border-[#10b981] text-[#10b981] bg-[#10b981]/10 opacity-80';
+                        else if(cell.type === 'sleeper') baseClasses += 'border-[#8b5cf6] text-[#8b5cf6] bg-[#8b5cf6]/10 opacity-80';
+                        else if(cell.type === 'ladies') baseClasses += 'border-[#ec4899] text-[#ec4899] bg-[#ec4899]/10 opacity-80';
+                    }
+
+                    div.className = baseClasses;
+
+                    // Assign Icons
+                    let iconClass = 'fa-chair';
+                    if(cell.type === 'sleeper') iconClass = 'fa-bed';
+                    if(cell.type === 'ladies') iconClass = 'fa-person-dress';
+
+                    // Add shimmer effect if it's the booked seat
+                    let shineHTML = cell.status === 'user_booked' ? `<div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>` : '';
+
+                    // Ensure null values don't print "null"
+                    let displayId = cell.id ? cell.id : '';
+                    div.innerHTML = `${shineHTML}<i class="fa-solid ${iconClass} mb-1 text-sm md:text-base relative z-10"></i><span class="relative z-10">${displayId}</span>`;
+                }
+
+                grid.appendChild(div);
+            }
+        }
+    });
+</script>
+<style>
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+</style>
+{% endblock %}

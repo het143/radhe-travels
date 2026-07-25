@@ -1,0 +1,115 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Active Routes{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Marquee Footer Animation */
+    @keyframes marquee { 0% { transform: translatex(100%); } 100% { transform: translatex(-100%); } }
+    .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 30s linear infinite; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-6xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Active Route Network</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Browse all officially approved operational paths in the system.</p>
+        </div>
+
+        <!-- FIXED: Converted button to an anchor tag pointing to the new CSV export route -->
+        <a href="{{ url_for('admin_export_routes_csv', search=search_query) }}" class="bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 text-xs font-bold px-4 py-2 rounded-lg transition-colors sm:w-auto w-full shadow-sm dark:shadow-none inline-flex items-center justify-center text-center">
+            <i class="fa-solid fa-download mr-2"></i> Export CSV
+        </a>
+    </header>
+
+    <div class="space-y-8">
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.1s;">
+
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors">Global Mapped Paths</h3>
+                    <span class="bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-[10px] font-bold px-3 py-1 rounded border border-green-200 dark:border-green-500/20 mt-2 inline-block transition-colors">
+                        {% if search_query %}Found {{ routes|length }} matches{% else %}Total: {{ routes|length }} Active{% endif %}
+                    </span>
+                </div>
+
+                <form method="GET" action="{{ url_for('admin_view_routes') }}" class="w-full md:w-auto relative">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm transition-colors"></i>
+                    <label class="sr-only">Search Routes</label>
+                    <label>
+                        <input type="text" name="search" value="{{ search_query }}" placeholder="Search origin or destination..." class="bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm rounded-xl py-2 pl-9 pr-8 focus:border-yellow-500 dark:focus:border-brand-gold outline-none transition-colors w-full md:w-72 shadow-sm dark:shadow-inner">
+                    </label>
+
+                    {% if search_query %}
+                        <a href="{{ url_for('admin_view_routes') }}" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors" title="Clear Search">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="overflow-x-auto w-full">
+                <table class="w-full min-w-[600px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Route ID</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Origin (Source)</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Destination</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Distance</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-right transition-colors">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for r in routes %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="p-4">
+                                <span class="text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-white/5 px-2 py-1 rounded transition-colors border border-gray-300 dark:border-transparent">RT-{{ r.id }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-location-dot text-yellow-600 dark:text-brand-gold text-xs mr-2 transition-colors"></i>{{ r.source }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-map-pin text-red-600 dark:text-brand-red text-xs mr-2 transition-colors"></i>{{ r.destination }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-xs text-gray-700 dark:text-gray-300 font-mono transition-colors">{{ r.distance }} KM</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">
+                                    ● Active
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">
+                                {% if search_query %}
+                                    No routes found matching "<span class="text-gray-900 dark:text-white transition-colors">{{ search_query }}</span>".
+                                {% else %}
+                                    No approved routes exist in the system yet.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="fixed bottom-0 left-0 md:left-[280px] right-0 h-8 bg-white/90 dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-white/5 overflow-hidden flex items-center z-30 transition-colors">
+    <div class="animate-marquee">
+        <span class="text-[10px] font-mono text-gray-600 dark:text-gray-400 uppercase tracking-widest px-4 transition-colors">
+            [SYSTEM] Route nodes synchronized... [GPS] Satellite tracking active... [GEOGRAPHY] State corridor verified...
+        </span>
+    </div>
+</div>
+{% endblock %}

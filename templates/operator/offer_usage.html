@@ -1,0 +1,111 @@
+{% extends "operator/base_operator.html" %}
+
+{% block title %}Promo Code Usage{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Offer Performance</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Track which passengers are utilizing your promotional offer codes.</p>
+        </div>
+        <div class="flex gap-4">
+            <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 w-fit transition-colors">
+                <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-bold tracking-widest transition-colors">Total Redemptions</p>
+                <p class="text-lg font-mono text-yellow-600 dark:text-brand-gold font-bold leading-none transition-colors">{{ usages|length }}</p>
+            </div>
+            <div class="bg-red-50 dark:bg-brand-red/10 border border-red-200 dark:border-brand-red/20 rounded-xl px-4 py-2 w-fit transition-colors">
+                <p class="text-[10px] text-red-500 dark:text-red-400 uppercase font-bold tracking-widest transition-colors">Total Value Given</p>
+                <p class="text-lg font-mono text-red-600 dark:text-white font-bold leading-none transition-colors">
+                    ₹ {{ "%.0f"|format(usages | sum(attribute='discount')) }}
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.1s;">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-tags text-yellow-500 dark:text-brand-gold mr-2 transition-colors"></i> Promo Usage Ledger</h3>
+
+                <div class="relative w-full sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                    <label for="searchInput" class="sr-only">Search Usage</label>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search Promo, PNR, or Name..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-yellow-500 dark:focus:border-brand-gold transition-colors shadow-sm dark:shadow-inner">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full max-h-[600px]">
+                <table class="w-full min-w-[1000px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Booking Reference</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Passenger Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Journey Route</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Promo Applied</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-right transition-colors">Discount</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-right transition-colors">Final Paid</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for u in usages %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4">
+                                <p class="text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-200 dark:bg-white/10 px-2 py-1 rounded inline-block transition-colors">{{ u.pnr }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 mt-1 transition-colors">{{ u.booking_date.strftime('%d %b %Y, %I:%M %p') }}</p>
+                            </td>
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ u.passenger }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5 transition-colors"><i class="fa-solid fa-phone text-gray-400 dark:text-gray-600 mr-1 transition-colors"></i>{{ u.mobile }}</p>
+                            </td>
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-blue-600 dark:text-brand-blue transition-colors">{{ u.source }} <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-500 text-xs mx-1 transition-colors"></i> {{ u.destination }}</p>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="text-xs font-bold text-yellow-600 dark:text-brand-gold bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-200 dark:border-brand-gold/20 px-3 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(251,191,36,0.1)] transition-colors">
+                                    <i class="fa-solid fa-ticket-simple mr-1"></i> {{ u.code }}
+                                </span>
+                                <p class="text-[9px] text-gray-500 dark:text-gray-500 mt-1 uppercase transition-colors">{{ u.title }}</p>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-sm font-mono font-bold text-red-600 dark:text-red-400 transition-colors">-₹ {{ "%.0f"|format(u.discount) }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-base font-mono font-bold text-green-600 dark:text-green-400 transition-colors">₹ {{ "%.0f"|format(u.final_amount) }}</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="p-10 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors"><i class="fa-solid fa-tags text-2xl mb-3 block opacity-50"></i>No promotional codes have been used on your buses yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Real-time Search Filter
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(input) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

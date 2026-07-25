@@ -1,0 +1,139 @@
+{% extends "operator/base_operator.html" %}
+
+{% block title %}Revenue & Payouts{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Revenue Ledger</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Track your gross sales, platform commissions, and bank payouts.</p>
+        </div>
+
+        <!-- FIXED: Enhanced contrast for Dark Mode on this specific card -->
+        <div class="bg-purple-50 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-500/30 rounded-xl px-5 py-3 w-fit text-right shadow-sm dark:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-colors">
+            <p class="text-[10px] text-purple-700 dark:text-purple-300 uppercase font-bold tracking-widest mb-0.5 transition-colors">Platform Base Fee</p>
+            <p class="text-2xl font-mono text-purple-900 dark:text-white font-bold leading-none transition-colors">{{ commission_rate }}%</p>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="glass-card p-6 border-t-4 border-t-blue-500 transition-colors">
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-1 transition-colors">Lifetime Gross Sales</p>
+                <h3 class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tight transition-colors">₹ {{ "%.0f"|format(settlements | sum(attribute='gross')) }}</h3>
+                <p class="text-xs text-blue-600 dark:text-blue-400 mt-2 font-bold transition-colors"><i class="fa-solid fa-chart-line mr-1"></i> Total volume generated</p>
+            </div>
+
+            <div class="glass-card p-6 border-t-4 border-t-purple-500 dark:border-t-brand-purple transition-colors">
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-1 transition-colors">Total Fees Paid</p>
+                <h3 class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tight transition-colors">₹ {{ "%.0f"|format(settlements | sum(attribute='platform_fee')) }}</h3>
+                <p class="text-xs text-purple-600 dark:text-brand-purple mt-2 font-bold transition-colors"><i class="fa-solid fa-handshake mr-1"></i> Deducted by Radhe Travels</p>
+            </div>
+
+            <div class="glass-card p-6 border-t-4 border-t-emerald-500 dark:border-t-brand-emerald bg-emerald-50/50 dark:bg-brand-emerald/5 transition-colors">
+                <p class="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-widest mb-1 transition-colors">Total Received</p>
+                <h3 class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tight transition-colors">₹ {{ "%.0f"|format(settlements | selectattr('settlement_status', 'equalto', 1) | sum(attribute='payout')) }}</h3>
+                <p class="text-xs text-emerald-600 dark:text-brand-emerald mt-2 font-bold transition-colors"><i class="fa-solid fa-building-columns mr-1"></i> Transferred to Bank</p>
+            </div>
+        </div>
+
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.2s;">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-receipt text-emerald-500 dark:text-brand-emerald mr-2 transition-colors"></i> Payout History</h3>
+
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                    <label for="searchInput" class="sr-only">Search Ledger</label>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search Date or Period..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-emerald-500 dark:focus:border-brand-emerald transition-colors shadow-sm dark:shadow-inner">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full max-h-[600px]">
+                <table class="w-full min-w-[1000px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Ref ID</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Transfer Date</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Sales Period</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-right transition-colors">Gross Sales</th>
+                            <th class="p-4 text-[10px] text-purple-600 dark:text-brand-purple uppercase tracking-widest font-bold text-right transition-colors">Platform Fee (-{{ commission_rate }}%)</th>
+                            <th class="p-4 text-[10px] text-emerald-600 dark:text-brand-emerald uppercase tracking-widest font-bold text-right transition-colors">Bank Deposit</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for s in settlements %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4">
+                                <span class="text-xs font-mono font-bold text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-white/5 px-2 py-1 rounded border border-gray-300 dark:border-white/10 transition-colors">TRX-{{ s.settlement_id }}</span>
+                            </td>
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ s.settlement_date.strftime('%d %b %Y') if s.settlement_date else 'N/A' }}</p>
+                            </td>
+                            <td class="p-4">
+                                <p class="text-xs text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider transition-colors">{{ s.settlement_period }}</p>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-sm font-mono text-gray-800 dark:text-gray-300 transition-colors">₹ {{ "%.2f"|format(s.gross) }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-sm font-mono text-red-600 dark:text-red-400 font-bold transition-colors">- ₹ {{ "%.2f"|format(s.platform_fee) }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-lg font-mono text-emerald-600 dark:text-brand-emerald font-bold transition-colors">₹ {{ "%.2f"|format(s.payout) }}</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if s.settlement_status == 1 %}
+                                    <span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-3 py-1.5 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">
+                                        <i class="fa-solid fa-check mr-1"></i> Settled
+                                    </span>
+                                {% else %}
+                                    <span class="text-[9px] font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest border border-yellow-200 dark:border-yellow-500/30 bg-yellow-50 dark:bg-yellow-500/10 px-3 py-1.5 rounded shadow-sm dark:shadow-[0_0_10px_rgba(250,204,21,0.2)] transition-colors">
+                                        Processing
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if s.settlement_status == 1 %}
+                                    <a href="{{ url_for('operator_payout_receipt', settlement_id=s.settlement_id) }}" class="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-500 transition-all uppercase tracking-widest border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded cursor-pointer inline-block shadow-sm"><i class="fa-solid fa-receipt mr-1"></i> View</a>
+                                {% else %}
+                                    <span class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest transition-colors">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="8" class="p-10 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No payouts have been processed to your bank account yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(input) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

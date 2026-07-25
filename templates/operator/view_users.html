@@ -1,0 +1,173 @@
+{% extends "operator/base_operator.html" %}
+
+{% block title %}Passenger Directory{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-6xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Passenger Directory</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Database of all passengers who have traveled with your fleet.</p>
+        </div>
+        <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 w-fit flex items-center gap-4 transition-colors">
+            <div>
+                <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-bold tracking-widest transition-colors">Total Unique Clients</p>
+                <p class="text-lg font-mono text-red-600 dark:text-brand-red font-bold leading-none transition-colors">{{ users|length }}</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-xl flex items-center gap-3 transition-colors {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} animate-slide-up shadow-sm">
+                        <i class="fa-solid {% if category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                        <span class="text-sm font-bold">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.1s;">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center flex-wrap gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-users text-red-500 dark:text-brand-red mr-2 transition-colors"></i> Client Ledger</h3>
+
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                    <label for="searchInput" class="sr-only">Search Directory</label>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search Name, Email, or Phone..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-red-500 dark:focus:border-brand-red transition-colors shadow-sm dark:shadow-inner">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full">
+                <table class="w-full min-w-[900px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">User ID</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Passenger Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Demographics</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Contact Info</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Seat History</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for u in users %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4">
+                                <span class="text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-white/5 px-2 py-1 rounded transition-colors border border-gray-300 dark:border-transparent">UID-{{ u.id }}</span>
+                            </td>
+                            <td class="p-4 flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name={{ u.name | urlencode }}&background=1e293b&color=fff" class="w-8 h-8 rounded-full border border-gray-300 dark:border-white/10 transition-colors" alt="Avatar">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ u.name }}</p>
+                            </td>
+
+                            <td class="p-4">
+                                <p class="text-xs text-gray-900 dark:text-white font-bold transition-colors">{{ u.gender }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest mt-0.5 transition-colors">Age: <span class="text-gray-700 dark:text-gray-300 font-mono transition-colors">{{ u.age }}</span></p>
+                            </td>
+
+                            <td class="p-4">
+                                <p class="text-xs text-gray-900 dark:text-white font-bold transition-colors">{{ u.email }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 font-mono mt-0.5 transition-colors"><i class="fa-solid fa-phone mr-1 text-gray-400 dark:text-gray-600 transition-colors"></i>{{ u.mobile }}</p>
+                            </td>
+
+                            <td class="p-4 text-center">
+                                <button onclick="openSeatModal('{{ u.name|escape }}', '{{ u.total_trips }}', '{{ u.all_seats|escape }}')" class="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-brand-red border border-red-200 dark:border-red-500/30 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm whitespace-nowrap">
+                                    <i class="fa-solid fa-chair mr-1"></i> View Seats
+                                </button>
+                            </td>
+
+                            <td class="p-4 text-center">
+                                <span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors whitespace-nowrap">
+                                    Verified Client
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm transition-colors">No passengers have booked with your fleet yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="seat-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0 px-4">
+    <div class="bg-white dark:bg-[#0f172a] border border-red-500/30 p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl dark:shadow-[0_0_40px_rgba(220,38,38,0.2)] transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center mb-5 border-b border-gray-200 dark:border-white/5 pb-3">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-ticket text-red-600 dark:text-brand-red"></i> Seat History</h3>
+            <button type="button" onclick="closeSeatModal()" class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-brand-red mx-auto mb-3 text-2xl shadow-inner">
+                <i class="fa-solid fa-couch"></i>
+            </div>
+            <h4 id="modal-user-name" class="text-lg font-bold text-gray-900 dark:text-white">Passenger Name</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Bookings: <span id="modal-total-trips" class="font-bold text-gray-700 dark:text-gray-300">0</span></p>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-4 mb-6 text-center">
+            <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Lifetime Seats Booked</p>
+            <p id="modal-seat-numbers" class="text-sm font-mono font-bold text-red-600 dark:text-brand-red leading-relaxed break-words"></p>
+        </div>
+
+        <button type="button" onclick="closeSeatModal()" class="w-full bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold py-3 rounded-xl shadow-lg transition-colors">
+            Close Panel
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Real-time Search Filter
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+
+        rows.forEach(row => {
+            const rowText = row.innerText.toLowerCase();
+            row.style.display = rowText.includes(input) ? '' : 'none';
+        });
+    }
+
+    // Modal Display Logic
+    function openSeatModal(name, trips, seats) {
+        document.getElementById('modal-user-name').innerText = name;
+        document.getElementById('modal-total-trips').innerText = trips;
+        document.getElementById('modal-seat-numbers').innerText = seats;
+
+        const modal = document.getElementById('seat-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeSeatModal() {
+        const modal = document.getElementById('seat-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+</script>
+{% endblock %}

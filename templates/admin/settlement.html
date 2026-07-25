@@ -1,0 +1,238 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Operator Payouts{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20 relative">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Operator Payouts</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Review operator earnings, platform fees, and initiate funds transfers.</p>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-xl flex items-center gap-3 transition-colors {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} animate-slide-up shadow-sm">
+                        <i class="fa-solid {% if category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                        <span class="text-sm font-bold">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="glass-card p-6 border-t-4 border-t-blue-500 transition-colors">
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-1 transition-colors">Total Gross Sales</p>
+                <h3 class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tight transition-colors">₹ {{ "%.2f"|format(summary.gross) }}</h3>
+                <p class="text-xs text-blue-600 dark:text-blue-400 mt-2 font-bold transition-colors">Volume Handled</p>
+            </div>
+            <div class="glass-card p-6 border-t-4 border-t-purple-600 dark:border-t-brand-purple transition-colors">
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-1 transition-colors">Platform Revenue</p>
+                <h3 class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tight transition-colors">₹ {{ "%.2f"|format(summary.platform_fee) }}</h3>
+                <p class="text-xs text-purple-600 dark:text-brand-purple mt-2 font-bold transition-colors">Commission Retained</p>
+            </div>
+            <div class="glass-card p-6 border-t-4 border-t-emerald-500 dark:border-t-brand-emerald transition-colors">
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-1 transition-colors">Pending Payouts</p>
+                <h3 class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tight transition-colors">₹ {{ "%.2f"|format(summary.payable) }}</h3>
+                <p class="text-xs text-emerald-600 dark:text-brand-emerald mt-2 font-bold transition-colors">Owed to Operators</p>
+            </div>
+        </div>
+
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.2s;">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-file-invoice-dollar text-emerald-600 dark:text-brand-emerald mr-2 transition-colors"></i> Pending Operator Payouts</h3>
+
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs transition-colors"></i>
+                    <label for="searchInput" class="sr-only">Search Operator</label>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search Operator..." class="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-xs rounded-lg py-2 pl-9 pr-3 outline-none focus:border-emerald-500 dark:focus:border-brand-emerald transition-colors shadow-sm dark:shadow-inner">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full max-h-[500px] overflow-y-auto">
+                <table class="w-full min-w-[900px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Partner Name</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Tickets Sold</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-right transition-colors">Gross Earnings</th>
+                            <th class="p-4 text-[10px] text-purple-600 dark:text-brand-purple uppercase tracking-widest font-bold text-right transition-colors">Platform Fee</th>
+                            <th class="p-4 text-[10px] text-emerald-600 dark:text-brand-emerald uppercase tracking-widest font-bold text-right transition-colors">Net Payable</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for op in settlements %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ op.name }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 font-mono mt-0.5 transition-colors">ID: {{ op.id }}</p>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="text-xs font-bold text-gray-800 dark:text-gray-300 transition-colors">{{ op.bookings }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-sm font-mono text-gray-800 dark:text-gray-300 transition-colors">₹ {{ "%.2f"|format(op.gross) }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <p class="text-sm font-mono text-purple-600 dark:text-brand-purple font-bold transition-colors">₹ {{ "%.2f"|format(op.cut) }}</p>
+                                <p class="text-[9px] text-gray-500 dark:text-gray-500 font-bold uppercase transition-colors">Rate: {{ op.rate }}%</p>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-lg font-mono text-emerald-600 dark:text-brand-emerald font-bold transition-colors">₹ {{ "%.2f"|format(op.payable) }}</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button type="button" onclick="showBankModal('{{ op.name|escape }}', '{{ op.bank_name|escape }}', '{{ op.account_number|escape }}', '{{ op.ifsc_code|escape }}', '{{ op.upi_id|escape }}')" title="View Bank Details" class="bg-blue-50 dark:bg-blue-500/20 hover:bg-blue-600 dark:hover:bg-blue-500 border border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white px-3 py-2 rounded-lg transition-colors shadow-sm dark:shadow-lg flex items-center justify-center">
+                                        <i class="fa-solid fa-building-columns"></i>
+                                    </button>
+
+                                    {% if op.payable > 0 %}
+                                        <form method="POST" action="{{ url_for('admin_process_payout') }}" class="inline m-0">
+                                            <input type="hidden" name="operator_id" value="{{ op.id }}">
+                                            <input type="hidden" name="amount" value="{{ op.payable }}">
+                                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 dark:bg-brand-emerald dark:hover:bg-emerald-600 text-white text-[10px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm dark:shadow-lg dark:shadow-emerald-900/30 whitespace-nowrap hover:-translate-y-0.5">
+                                                Initiate Payout
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded border border-gray-200 dark:border-white/10 whitespace-nowrap transition-colors">Transferred</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No approved operators or booking data available.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.3s;">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left text-blue-600 dark:text-brand-blue mr-2 transition-colors"></i> Payout History & Receipts</h3>
+            </div>
+
+            <div class="overflow-x-auto w-full max-h-[400px] overflow-y-auto">
+                <table class="w-full min-w-[900px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] shadow-sm dark:shadow-md border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Partner Name</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Date Earned (Period)</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Date Transferred</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-right transition-colors">Gross Processed</th>
+                            <th class="p-4 text-[10px] text-emerald-600 dark:text-brand-emerald uppercase tracking-widest font-bold text-right transition-colors">Net Payout Transferred</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for h in past_settlements %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ h.operator_name }}</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-500 font-mono mt-0.5 transition-colors">TXN-{{ h.settlement_id }}</p>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-[10px] font-bold text-yellow-700 dark:text-brand-gold bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-300 dark:border-brand-gold/20 px-2 py-1 uppercase rounded tracking-widest transition-colors">{{ h.settlement_period }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="text-xs text-gray-700 dark:text-gray-300 font-bold transition-colors"><i class="fa-regular fa-calendar-check mr-1.5 text-blue-600 dark:text-brand-blue transition-colors"></i> {{ h.settlement_date.strftime('%d %b %Y') if h.settlement_date else 'N/A' }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-sm font-mono text-gray-800 dark:text-gray-300 transition-colors">₹ {{ "%.2f"|format(h.total_booking_amount) }}</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <span class="text-sm font-mono text-emerald-600 dark:text-brand-emerald font-bold transition-colors">₹ {{ "%.2f"|format(h.net_payable_amount) }}</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <a href="{{ url_for('admin_payout_receipt', settlement_id=h.settlement_id) }}" class="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:text-white dark:hover:text-white hover:bg-blue-600 dark:hover:bg-blue-500 transition-colors uppercase tracking-widest border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded cursor-pointer inline-block"><i class="fa-solid fa-receipt mr-1"></i> View Receipt</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">No historical payouts found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Bank Details Modal -->
+    <div id="bankModal" class="fixed inset-0 bg-gray-900/50 dark:bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="glass-card bg-white dark:bg-[rgba(30,41,59,0.9)] p-8 max-w-md w-full mx-4 border border-gray-200 dark:border-white/10 rounded-2xl relative shadow-2xl transition-colors">
+            <button onclick="closeBankModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+
+            <div class="mb-6 border-b border-gray-200 dark:border-white/10 pb-4 transition-colors">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 transition-colors"><i class="fa-solid fa-building-columns text-blue-600 dark:text-brand-blue transition-colors"></i> Bank Details</h3>
+                <p id="modalOpName" class="text-xs text-gray-600 dark:text-gray-400 mt-1 uppercase tracking-widest font-bold transition-colors">Operator Name</p>
+            </div>
+
+            <div class="space-y-5">
+                <div>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold mb-1 transition-colors">Bank Name</p>
+                    <p class="text-gray-900 dark:text-white font-bold transition-colors" id="modalBank">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold mb-1 transition-colors">Account Number</p>
+                    <p class="text-yellow-600 dark:text-brand-gold font-mono tracking-widest text-lg transition-colors" id="modalAcc">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold mb-1 transition-colors">IFSC Code</p>
+                    <p class="text-gray-900 dark:text-white font-mono uppercase transition-colors" id="modalIfsc">Loading...</p>
+                </div>
+                <div class="border-t border-gray-200 dark:border-white/5 pt-4 transition-colors">
+                    <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-widest font-bold mb-1 transition-colors"><i class="fa-brands fa-google-pay text-purple-600 dark:text-brand-purple mr-1 transition-colors"></i> Connected UPI ID</p>
+                    <p class="text-purple-600 dark:text-brand-purple font-mono transition-colors" id="modalUpi">Loading...</p>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-gray-200 dark:border-white/5 text-center transition-colors">
+                <button onclick="closeBankModal()" class="bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-800 dark:text-white font-bold px-6 py-2 rounded-xl transition-colors text-sm">Close</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataTable tr.group');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(input) ? '' : 'none';
+        });
+    }
+
+    // Modal control functions
+    function showBankModal(name, bank, acc, ifsc, upi) {
+        document.getElementById('modalOpName').innerText = name;
+        document.getElementById('modalBank').innerText = bank;
+        document.getElementById('modalAcc').innerText = acc;
+        document.getElementById('modalIfsc').innerText = ifsc;
+        document.getElementById('modalUpi').innerText = upi;
+
+        document.getElementById('bankModal').classList.remove('hidden');
+    }
+
+    function closeBankModal() {
+        document.getElementById('bankModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

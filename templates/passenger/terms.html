@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Terms & Conditions | Radhe Travels{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (FULL SCREEN) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        pointer-events: none;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Clean architectural structure / transparent glass) */
+        background-image: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Light Mode Overlay */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.7) !important; /* 70% white tint to make text highly readable */
+        backdrop-filter: blur(8px) !important; /* Smooth blur */
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Sleek corporate boardroom / official legal setting) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2000&q=80') !important;
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.75) !important; /* 75% dark slate tint */
+        backdrop-filter: blur(8px) !important;
+    }
+
+    /* Glass Card */
+    .glass-card {
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+
+    html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+    }
+
+    /* Typography spacing for legal text with light/dark support */
+    .legal-content h3 {
+        font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700;
+        margin-top: 2.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;
+        transition: color 0.3s ease;
+    }
+    .dark .legal-content h3 { color: #fff; }
+    html:not(.dark) .legal-content h3 { color: #0f172a; }
+
+    .legal-content p, .legal-content ul {
+        font-size: 0.9rem; line-height: 1.7; margin-bottom: 1rem;
+        transition: color 0.3s ease;
+    }
+    .dark .legal-content p, .dark .legal-content ul { color: #94a3b8; }
+    html:not(.dark) .legal-content p, html:not(.dark) .legal-content ul { color: #475569; }
+
+    .legal-content ul { padding-left: 1.5rem; list-style-type: disc; margin-bottom: 1.5rem; }
+    .legal-content ul li { margin-bottom: 0.5rem; }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-bg" id="hero-bg"></div>
+
+<div class="pt-24 pb-12 px-6 border-b border-gray-200 dark:border-white/5 relative z-10 animate-slide-up transition-colors">
+    <div class="max-w-4xl mx-auto text-center">
+        <span class="inline-block px-4 py-1.5 rounded-full bg-gray-200 dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-600 dark:text-gray-300 text-[10px] font-bold uppercase tracking-widest mb-6 transition-colors backdrop-blur-md">
+            Legal Gateway
+        </span>
+        <h1 class="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-4 transition-colors drop-shadow-md">
+            Terms & Conditions
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium transition-colors">Last Updated: March 2026 • Valid for the Gujarat Division Network</p>
+    </div>
+</div>
+
+<div class="container mx-auto px-6 py-12 relative z-10 animate-slide-up" style="animation-delay: 0.1s;">
+    <div class="max-w-4xl mx-auto glass-card p-8 md:p-12 mb-20 shadow-xl dark:shadow-2xl">
+
+        <div class="legal-content">
+            <p>Welcome to Radhe Travels. By accessing our platform, booking a ticket, or utilizing our operator network, you agree to comply with the following Terms of Service. Please read them carefully.</p>
+
+            <h3><i class="fa-solid fa-ticket text-brand-red"></i> 1. Booking Policy & E-Tickets</h3>
+            <p>Radhe Travels acts strictly as a technology provider connecting passengers with certified fleet operators. When you purchase a ticket:</p>
+            <ul>
+                <li>Your seat is electronically locked upon successful payment.</li>
+                <li>The generated E-Ticket (PNR) must be presented along with a valid Government ID at the time of boarding.</li>
+                <li>Tickets are non-transferable. Passenger details provided during booking must match the traveler's ID.</li>
+            </ul>
+
+            <h3><i class="fa-solid fa-clock-rotate-left text-yellow-600 dark:text-brand-gold transition-colors"></i> 2. Cancellation & Refund Rules</h3>
+            <p>Refunds are processed automatically to the original payment method based on the time of cancellation relative to the departure time:</p>
+            <ul>
+                <li><strong>Before 24 Hours:</strong> 90% refund of the base fare (Platform fees are non-refundable).</li>
+                <li><strong>12 to 24 Hours:</strong> 50% refund of the base fare.</li>
+                <li><strong>Less than 12 Hours:</strong> No refund will be issued.</li>
+                <li>In the rare event of a bus cancellation by the Operator, passengers will receive a 100% full refund within 3-5 business days.</li>
+            </ul>
+
+            <h3><i class="fa-solid fa-suitcase-rolling text-blue-600 dark:text-blue-400 transition-colors"></i> 3. Baggage Allowance</h3>
+            <p>To ensure comfort and safety for all passengers, strict baggage limits are enforced by the operators:</p>
+            <ul>
+                <li>Each passenger is allowed <strong>one piece of luggage</strong> up to 15 kg in the cargo hold.</li>
+                <li>One small personal cabin bag (e.g., laptop bag or purse) up to 5 kg is permitted inside the seating area.</li>
+                <li>Hazardous materials, flammables, weapons, and illicit substances are strictly prohibited.</li>
+                <li>Operators hold the right to deny boarding if luggage exceeds limits without prior approval.</li>
+            </ul>
+
+            <h3><i class="fa-solid fa-bus text-green-600 dark:text-green-400 transition-colors"></i> 4. Boarding Protocol</h3>
+            <p>Punctuality is crucial for maintaining the network schedule.</p>
+            <ul>
+                <li>Passengers must arrive at the designated boarding point at least <strong>15 minutes before</strong> the scheduled departure.</li>
+                <li>Operators are not obligated to wait for late arrivals. Missing the bus constitutes a "No Show" and is non-refundable.</li>
+                <li>The Live Tracking link is provided for convenience, but traffic/network delays do not absolve the passenger of the arrival requirement.</li>
+            </ul>
+
+            <h3><i class="fa-solid fa-shield-halved text-purple-600 dark:text-purple-400 transition-colors"></i> 5. Zero-Trust Privacy & Security</h3>
+            <p>Your data is protected under our Zero-Trust architecture:</p>
+            <ul>
+                <li>Payment information is tokenized and never stored on our local servers.</li>
+                <li>Passenger contact details are temporarily shared with the specific operator for boarding coordination and are masked post-journey.</li>
+                <li>Any attempt to manipulate the platform, bypass payment gateways, or submit fraudulent requests will result in an immediate hardware ban and legal action.</li>
+            </ul>
+
+        </div>
+
+        <div class="mt-12 pt-8 border-t border-gray-200 dark:border-white/10 text-center transition-colors">
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium transition-colors">Have questions about these terms?</p>
+            <a href="{{ url_for('support') }}" class="inline-block mt-4 text-brand-red font-bold text-sm hover:text-red-600 dark:hover:text-red-400 transition-colors"><i class="fa-solid fa-headset mr-1"></i> Contact Support Team</a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Subtle Mouse Parallax to match the rest of the site
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        if (!bg) return;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 90;
+        const dy = (cy - e.pageY) / 90;
+        bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+</script>
+{% endblock %}

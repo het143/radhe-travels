@@ -1,0 +1,317 @@
+{% extends "operator/base_operator.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+    <style>
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes marquee { 0% { transform: translatex(100%); } 100% { transform: translatex(-100%); } }
+    .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 30s linear infinite; }
+
+    /* Light/Dark Theme for Dropdown Menus */
+    select.dark-select option {
+        background-color: #ffffff;
+        color: #0f172a;
+        padding: 10px;
+    }
+    .dark select.dark-select option {
+        background-color: #0f172a; /* Deep navy background */
+        color: white;
+    }
+
+    /* Custom Scrollbar for Modal */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(220, 38, 38, 0.3); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(220, 38, 38, 0.6); }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+
+    <header class="flex flex-col sm:flex-row justify-between sm:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h1 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Bus Overview</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Real-time operational summary.</p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+
+            <button onclick="openPassengerSOSModal()" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-brand-red rounded-xl px-5 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-red-100 dark:hover:bg-red-500/20 relative shadow-sm">
+                <i class="fa-solid fa-bell {% if passenger_sos %}animate-pulse{% endif %} text-lg"></i>
+                <span class="text-xs font-bold uppercase tracking-widest hidden md:inline">Passenger SOS</span>
+                {% if passenger_sos %}
+                    <span class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-md border-2 border-white dark:border-[#0f172a]">{{ passenger_sos|length }}</span>
+                {% endif %}
+            </button>
+
+            <button onclick="openAlertModal()" class="bg-yellow-50 dark:bg-yellow-600/20 text-yellow-600 dark:text-brand-gold border border-yellow-200 dark:border-brand-gold/50 hover:bg-yellow-500 hover:text-white dark:hover:bg-brand-gold dark:hover:text-black px-5 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> <span class="hidden md:inline">Report Issue</span>
+            </button>
+
+            <a href="{{ url_for('operator_operations_hub', tab='command') }}" class="bg-brand-red text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-[0_4px_15px_rgba(216,78,85,0.4)] hover:bg-red-600 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-layer-group"></i> <span class="hidden md:inline">Operations Hub</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="glass-card p-6 border-l-4 border-l-yellow-500 dark:border-l-brand-gold transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Total Buses</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{{ stats.total_buses or 0 }}</h3>
+        </div>
+        <div class="glass-card p-6 border-l-4 border-l-brand-red transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Today's Bookings</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{{ stats.todays_bookings }}</h3>
+        </div>
+        <div class="glass-card p-6 border-l-4 border-l-blue-500 transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Active Routes</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{{ stats.active_routes }}</h3>
+        </div>
+        <div class="glass-card p-6 border-l-4 border-l-green-500 transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Today's Earnings</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors">₹ {{ stats.today_earnings }}</h3>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 animate-slide-up" style="animation-delay: 0.2s;">
+        <div class="lg:col-span-2 glass-card p-6 md:p-8 transition-colors">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-8 transition-colors">Daily Revenue Cycle (Last 7 Days)</h3>
+            <div class="h-64 md:h-80 w-full"><canvas id="revenueChart"></canvas></div>
+        </div>
+
+        <div class="glass-card p-6 md:p-8 transition-colors">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-8 transition-colors">Top Routes by Volume</h3>
+            <div class="h-56 md:h-64 flex justify-center mb-6"><canvas id="routeChart"></canvas></div>
+            <div class="space-y-3" id="route-legend"></div>
+        </div>
+    </div>
+
+</div>
+
+<div id="passenger-sos-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-red-500/30 p-6 md:p-8 max-w-3xl w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+
+        <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-white/10 pb-4 shrink-0">
+            <h3 class="text-xl md:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-brand-red">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                Passenger Emergencies
+            </h3>
+            <button onclick="closePassengerSOSModal()" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors bg-gray-100 dark:bg-white/5 w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="overflow-y-auto pr-2 space-y-4 flex-1 custom-scrollbar">
+            {% if passenger_sos %}
+                {% for sos in passenger_sos %}
+                    <div class="bg-red-50 dark:bg-red-500/10 border-2 border-red-400 dark:border-red-500 p-5 rounded-xl shadow-lg relative overflow-hidden">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div class="flex-1">
+                                <p class="text-[10px] text-red-500 dark:text-red-400 uppercase tracking-widest font-bold mb-1">Active SOS Alert</p>
+                                <h4 class="text-gray-900 dark:text-white font-bold text-lg mb-1">{{ sos.passenger }} <a href="tel:{{ sos.mobile }}" class="text-blue-500 hover:underline ml-2 text-sm"><i class="fa-solid fa-phone"></i> {{ sos.mobile }}</a></h4>
+                                <p class="text-xs font-mono text-gray-600 dark:text-gray-400 mb-3 bg-gray-200 dark:bg-white/10 inline-block px-2 py-1 rounded">Ticket: {{ sos.pnr }}</p>
+
+                                <div class="bg-white dark:bg-black/40 p-3 rounded-lg border border-red-200 dark:border-red-500/20">
+                                    <p class="text-sm text-red-700 dark:text-red-300 font-mono italic whitespace-pre-wrap">"{{ sos.message }}"</p>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ url_for('operator_resolve_sos', ticket_id=sos.ticket_id) }}" class="m-0 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                                <button type="submit" onclick="this.innerHTML='<i class=\'fa-solid fa-spinner fa-spin\'></i> Closing...'; this.classList.add('opacity-75', 'cursor-not-allowed');" class="w-full sm:w-auto bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black text-xs font-bold px-5 py-2.5 rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-colors flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-check-double"></i> Mark Handled
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="w-20 h-20 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-inner">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">All Clear</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">No active passenger SOS alerts for your fleet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="alertModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/80 backdrop-blur-md transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] border border-yellow-500/30 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl dark:shadow-[0_0_40px_rgba(251,191,36,0.2)] transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center mb-5 border-b border-gray-200 dark:border-white/5 pb-3">
+            <h3 class="text-xl font-bold text-yellow-600 dark:text-brand-gold flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> Report Issue to Admin</h3>
+            <button type="button" onclick="closeAlertModal()" class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('operator_send_alert') }}" class="space-y-4">
+            <div>
+                <label for="alert_type" class="block text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1 transition-colors">Issue Type</label>
+                <select name="alert_type" id="alert_type" class="dark-select w-full bg-gray-50 dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white rounded-lg p-3 text-sm outline-none focus:border-yellow-500 transition-colors" required>
+                    <option value="" disabled selected>-- Select Emergency Type --</option>
+                    <option value="Accident">Accident / Collision</option>
+                    <option value="Breakdown">Mechanical Breakdown</option>
+                    <option value="Traffic">Severe Traffic Delay</option>
+                    <option value="Other">Other Emergency</option>
+                </select>
+            </div>
+            <div>
+                <label for="bus_reg" class="block text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1 transition-colors">Affected Vehicle</label>
+                <select name="bus_reg" id="bus_reg" class="dark-select w-full bg-gray-50 dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white rounded-lg p-3 text-sm outline-none focus:border-yellow-500 transition-colors" required>
+                    <option value="" disabled selected>-- Select Bus --</option>
+                    {% for b in active_buses %}
+                        <option value="{{ b }}">{{ b }}</option>
+                    {% else %}
+                        <option value="No Bus Selected">No Active Buses Available</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="message" class="block text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1 transition-colors">Details & Location</label>
+                <textarea name="message" id="message" rows="3" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white rounded-lg p-3 text-sm outline-none focus:border-yellow-500 transition-colors" placeholder="Where are you? Are passengers safe?" required></textarea>
+            </div>
+            <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white dark:text-black font-bold py-3.5 rounded-lg transition shadow-lg shadow-yellow-500/30 flex justify-center items-center gap-2 mt-2">
+                <i class="fa-solid fa-satellite-dish"></i> Broadcast to Admin
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="fixed bottom-0 left-0 md:left-[280px] right-0 h-8 bg-white/90 dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-white/5 overflow-hidden flex items-center z-30 transition-colors">
+    <div class="animate-marquee">
+        <span class="text-[10px] font-mono text-gray-600 dark:text-gray-400 uppercase tracking-widest px-4 transition-colors">
+            [NETWORK] Node_GJ_01 online... [TRAFFIC] Congestion at Narmada Bridge reported... [SYSTEM] Data Encrypted...
+        </span>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
+
+<script>
+    // SOS Modal Functions
+    function openPassengerSOSModal() {
+        const modal = document.getElementById('passenger-sos-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closePassengerSOSModal() {
+        const modal = document.getElementById('passenger-sos-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Report Issue Modal Functions
+    function openAlertModal() {
+        const modal = document.getElementById('alertModal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeAlertModal() {
+        const modal = document.getElementById('alertModal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    const revLabels = {{ revenue_labels | tojson | safe }};
+    const revVals = {{ revenue_values | tojson | safe }};
+    const routeLabels = {{ route_share.keys() | list | tojson | safe }};
+    const routeVals = {{ route_share.values() | list | tojson | safe }};
+
+    window.onload = function() {
+        const ctxRev = document.getElementById('revenueChart').getContext('2d');
+        const grad = ctxRev.createLinearGradient(0, 0, 0, 400);
+        grad.addColorStop(0, 'rgba(251, 191, 36, 0.3)');
+        grad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+
+        new Chart(ctxRev, {
+            type: 'line',
+            data: { labels: revLabels, datasets: [{ label: 'Earnings (₹)', data: revVals, borderColor: '#fbbf24', backgroundColor: grad, fill: true, tension: 0.4, borderWidth: 3 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(context) { return '₹ ' + context.parsed.y.toLocaleString(); } } } },
+                scales: {
+                    y: { grid: { color: 'rgba(150, 150, 150, 0.1)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+                    x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
+                }
+            }
+        });
+
+        const colors = ['#d84e55', '#fbbf24', '#3b82f6'];
+        new Chart(document.getElementById('routeChart'), {
+            type: 'doughnut',
+            data: { labels: routeLabels, datasets: [{ data: routeVals, backgroundColor: colors, borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false } } }
+        });
+
+        const legendContainer = document.getElementById('route-legend');
+        let legendHTML = '';
+        routeLabels.forEach((label, index) => {
+            const color = colors[index % colors.length];
+            const displayLabel = label === 'No Active Bookings' ? 'No Data Yet' : label;
+            const displayVal = label === 'No Active Bookings' ? '-' : routeVals[index] + ' Bookings';
+            legendHTML += `
+                <div class="flex items-center justify-between bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 px-3 py-2 rounded-lg transition-colors">
+                    <div class="flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full" style="background-color: ${color}"></span>
+                        <span class="text-xs text-gray-700 dark:text-gray-300 font-bold truncate max-w-[150px] transition-colors">${displayLabel}</span>
+                    </div>
+                    <span class="text-gray-900 dark:text-white font-mono text-[10px] font-bold transition-colors">${displayVal}</span>
+                </div>
+            `;
+        });
+        legendContainer.innerHTML = legendHTML;
+    };
+
+    // Socket IO Listener
+    document.addEventListener('DOMContentLoaded', function() {
+        const socket = io();
+
+        socket.on('emergency_trigger', function(data) {
+            // Play alarm sound
+            let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(e => console.log("Audio play blocked by browser:", e));
+
+            // Generate Toast Alert
+            const toast = document.createElement('div');
+            toast.className = `fixed top-5 right-5 z-[200] bg-red-600 text-white p-4 rounded-xl shadow-2xl transform transition-all duration-500 translate-x-full border-2 border-red-300`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-triangle-exclamation animate-pulse text-2xl"></i>
+                    <div>
+                        <h4 class="font-black text-sm uppercase tracking-widest">${data.title}</h4>
+                        <p class="text-xs font-medium">${data.message}</p>
+                    </div>
+                </div>
+                <div class="mt-3 text-right">
+                    <button onclick="window.location.reload()" class="bg-white text-red-600 text-[10px] font-bold px-3 py-1.5 rounded-lg shadow uppercase hover:bg-gray-100 transition-colors">Reload Dashboard</button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Slide Toast onto screen
+            setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+        });
+    });
+</script>
+{% endblock %}

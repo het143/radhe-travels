@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found | Radhe Travels</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            red: '#d84e55',
+                            black: '#020617',
+                            gold: '#fbbf24',
+                            panel: 'rgba(15, 23, 42, 0.8)'
+                        }
+                    },
+                    animation: {
+                        'float-slow': 'float 6s ease-in-out infinite',
+                        'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        /* 1. CINEMATIC BACKGROUND */
+        .bg-image {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            /* Lonely Highway at Night */
+            background-image: linear-gradient(to bottom, rgba(2, 6, 23, 0.6), rgba(2, 6, 23, 0.95)), url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=2021&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            z-index: -2;
+            filter: blur(2px);
+            transform: scale(1.1); /* Slight zoom for parallax */
+            transition: transform 0.1s ease-out;
+        }
+
+        /* 2. 3D CONTAINER */
+        #scene {
+            perspective: 1000px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 3. MAIN GLASS CARD */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8);
+            border-radius: 32px;
+            padding: 60px;
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            position: relative;
+        }
+
+        /* 4. THE GIANT 404 TEXT */
+        .error-code {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 900;
+            font-size: 10rem;
+            line-height: 1;
+            color: transparent;
+            /* Text Stroke Effect */
+            -webkit-text-stroke: 2px rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 10;
+            display: inline-block;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            opacity: 0.8;
+            transform: translateZ(50px); /* 3D pop */
+        }
+
+        /* The "0" as a Radar/Wheel */
+        .radar-circle {
+            display: inline-block;
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            border: 4px solid #d84e55;
+            position: relative;
+            transform: translateY(-20px) translateZ(40px);
+            background: rgba(216, 78, 85, 0.05);
+            box-shadow: 0 0 30px rgba(216, 78, 85, 0.2);
+        }
+
+        .radar-scan {
+            position: absolute; top: 50%; left: 50%; width: 50%; height: 2px;
+            background: linear-gradient(90deg, transparent, #d84e55);
+            transform-origin: 0 0;
+            animation: radarSpin 2s linear infinite;
+        }
+        @keyframes radarSpin { 100% { transform: rotate(360deg); } }
+
+        /* 5. SEARCH BAR */
+        .search-container {
+            position: relative;
+            margin-top: 30px;
+            transform: translateZ(30px);
+        }
+        .royal-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 16px 20px;
+            padding-right: 50px;
+            border-radius: 12px;
+            width: 100%;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+        .royal-input:focus {
+            outline: none;
+            border-color: #fbbf24;
+            background: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.15);
+        }
+        .search-btn {
+            position: absolute; right: 8px; top: 8px; bottom: 8px;
+            width: 40px; border-radius: 8px;
+            background: #fbbf24; color: #000;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .search-btn:hover { background: #f59e0b; transform: scale(1.05); }
+
+        /* 6. BUTTONS */
+        .btn-home {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #d84e55; color: white;
+            padding: 14px 32px; border-radius: 50px;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+            transition: all 0.3s;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px -10px rgba(216, 78, 85, 0.5);
+            transform: translateZ(20px);
+        }
+        .btn-home:hover {
+            background: #b91c1c;
+            transform: translateZ(25px) translateY(-2px);
+            box-shadow: 0 15px 40px -10px rgba(216, 78, 85, 0.7);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-image" id="bg-layer"></div>
+
+    <div id="scene">
+
+        <div class="glass-card" id="tilt-target">
+
+            <div class="relative animate-float-slow">
+                <span class="error-code">4</span>
+
+                <div class="inline-block relative w-32 h-32 mx-2">
+                     <div class="absolute inset-0 rounded-full border-4 border-brand-red opacity-20"></div>
+                     <div class="absolute inset-0 rounded-full border-t-4 border-brand-red animate-spin"></div>
+                     <div class="absolute inset-0 flex items-center justify-center text-4xl text-brand-red opacity-80">
+                         <i class="fa-solid fa-location-slash"></i>
+                     </div>
+                </div>
+
+                <span class="error-code">4</span>
+            </div>
+
+            <h2 class="text-3xl md:text-4xl font-heading font-bold text-white mb-4 mt-4" style="transform: translateZ(40px);">
+                Lost on the Highway?
+            </h2>
+
+            <p class="text-slate-400 text-lg mb-8 max-w-md mx-auto leading-relaxed" style="transform: translateZ(30px);">
+                The route you are looking for doesn't exist or has been moved to a new terminal.
+            </p>
+
+            <div class="search-container">
+                <label>
+                    <input type="text" placeholder="Search for routes, help, or pages..." class="royal-input">
+                </label>
+                <button class="search-btn">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <a href="{{ url_for('passenger_home') }}" class="btn-home">
+                <i class="fa-solid fa-house"></i> Return to Homepage
+            </a>
+
+            <div class="mt-8 flex justify-center gap-6 text-xs text-gray-500 font-medium" style="transform: translateZ(20px);">
+                <a href="#" class="hover:text-brand-gold transition">Report Issue</a>
+                <span>•</span>
+                <a href="#" class="hover:text-brand-gold transition">Help Center</a>
+                <span>•</span>
+                <a href="#" class="hover:text-brand-gold transition">Sitemap</a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // 3D PARALLAX LOGIC
+        document.addEventListener('mouse move', (e) => {
+            const card = document.getElementById('tilt-target');
+            const bg = document.getElementById('bg-layer');
+
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+
+            // Sensitivity
+            const dx = (cx - e.pageX) / 40;
+            const dy = (cy - e.pageY) / 40;
+
+            // Tilt Card
+            card.style.transform = `rotateY(${dx}deg) rotateX(${dy}deg)`;
+
+            // Move Background Opposite
+            bg.style.transform = `scale(1.1) translatex(${dx * 0.5}px) translateY(${dy * 0.5}px)`;
+        });
+    </script>
+
+</body>
+</html>

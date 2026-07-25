@@ -1,0 +1,253 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Offer Audit{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Custom Royal Input Light/Dark Handling */
+    .royal-input {
+        padding: 10px 12px; border-radius: 8px; width: 100%;
+        font-size: 0.75rem; outline: none; transition: all 0.3s;
+    }
+
+    /* Fix: Prevent text from overlapping with absolute icons */
+    .royal-input.pl-10 { padding-left: 2.5rem !important; }
+    .royal-input.pr-10 { padding-right: 2.5rem !important; }
+
+    .dark .royal-input {
+        background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: white;
+    }
+    .dark .royal-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+
+    html:not(.dark) .royal-input {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+    }
+    html:not(.dark) .royal-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    html:not(.dark) .royal-input::placeholder { color: #94a3b8; }
+
+    /* Auto-expanding textarea */
+    .reply-input {
+        padding: 10px 12px; border-radius: 8px; width: 100%;
+        font-size: 0.75rem; outline: none; transition: border-color 0.3s;
+        resize: none; overflow: hidden; min-height: 38px; line-height: 1.4;
+    }
+
+    .dark .reply-input {
+        background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: white;
+    }
+    .dark .reply-input:focus { border-color: #3b82f6; }
+
+    html:not(.dark) .reply-input {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+    }
+    html:not(.dark) .reply-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+    html:not(.dark) .reply-input::placeholder { color: #94a3b8; }
+
+    /* Select styling for dark mode */
+    select.royal-input option { background-color: #ffffff; color: #0f172a; }
+    .dark select.royal-input option { background-color: #0f172a; color: white; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+
+    <form id="bulk-offer-form" method="POST" action="{{ url_for('admin_batch_offer_action') }}" onsubmit="return validateBatchSubmit()"></form>
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Offer Audit</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Review and approve promotional offers submitted by bus operators.</p>
+        </div>
+        <div class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 w-fit transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-bold tracking-widest transition-colors">Pending Audits</p>
+            <p class="text-lg font-mono text-yellow-600 dark:text-brand-gold font-bold leading-none transition-colors">{{ offers | selectattr('status', 'equalto', 0) | list | length }}</p>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-xl flex items-center gap-3 transition-colors {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} animate-slide-up shadow-sm">
+                        <i class="fa-solid {% if category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                        <span class="text-sm font-bold">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="glass-card overflow-hidden animate-slide-up transition-colors" style="animation-delay: 0.1s;">
+
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-tags text-purple-600 dark:text-brand-purple mr-2 transition-colors"></i> Promotional Offers</h3>
+                    <span class="bg-yellow-100 dark:bg-brand-gold/10 text-yellow-700 dark:text-brand-gold text-[10px] font-bold px-3 py-1 rounded border border-yellow-300 dark:border-brand-gold/20 mt-2 inline-block transition-colors">
+                        {% if search_query or status_filter != 'all' %}Found {{ offers|length }} matches{% else %}Total: {{ offers|length }} Offers{% endif %}
+                    </span>
+                </div>
+
+               <!-- Combined Search and Filter Form -->
+               <form method="GET" action="{{ url_for('admin_approve_offer') }}" class="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+
+                    <label for="statusFilter" class="sr-only">Filter by Status</label>
+                    <select name="status_filter" id="statusFilter" class="royal-input py-2 px-3 w-full sm:w-40 cursor-pointer" onchange="this.form.submit()">
+                        <!-- FIXED: Using full block tags outside the option tag so IDEs don't crash -->
+                        {% if status_filter == 'all' %}<option value="all" selected>All Statuses</option>{% else %}<option value="all">All Statuses</option>{% endif %}
+                        {% if status_filter == '0' %}<option value="0" selected>Pending</option>{% else %}<option value="0">Pending</option>{% endif %}
+                        {% if status_filter == '1' %}<option value="1" selected>Active</option>{% else %}<option value="1">Active</option>{% endif %}
+                        {% if status_filter == '2' %}<option value="2" selected>Rejected</option>{% else %}<option value="2">Rejected</option>{% endif %}
+                    </select>
+
+                    <div class="relative w-full sm:w-64 md:w-80">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm transition-colors"></i>
+                        <label for="searchInput" class="sr-only">Search</label>
+                        <input type="text" name="search" id="searchInput" value="{{ search_query }}" placeholder="Search operator, title, or code..." class="royal-input pl-10 py-2 pr-8 w-full">
+                        {% if search_query or status_filter != 'all' %}
+                            <a href="{{ url_for('admin_approve_offer') }}" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors" title="Clear Filters">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                    <!-- Hidden submit button to allow Enter key search -->
+                    <button type="submit" class="hidden"></button>
+                </form>
+            </div>
+
+            <div class="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/40 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 transition-colors">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest transition-colors"><i class="fa-solid fa-bolt text-yellow-600 dark:text-brand-gold mr-1 transition-colors"></i> Master Batch Actions</p>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto">
+                    <div class="w-full md:w-64">
+                        <label for="globalFeedback" class="sr-only">Global Feedback</label>
+                        <input type="text" id="globalFeedback" name="global_feedback" form="bulk-offer-form" placeholder="Feedback for selected items..." class="royal-input text-xs w-full py-2.5">
+                    </div>
+
+                    <div class="flex w-full md:w-auto gap-2">
+                        <button type="submit" name="batch_action" value="reject" form="bulk-offer-form" class="flex-1 md:flex-none bg-red-50 dark:bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 dark:hover:text-white border border-red-200 dark:border-red-500/30 px-5 py-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-xmark"></i> Reject
+                        </button>
+                        <button type="submit" name="batch_action" value="approve" form="bulk-offer-form" class="flex-1 md:flex-none bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-600 hover:text-white dark:hover:bg-green-500 dark:hover:text-white border border-green-200 dark:border-green-500/30 px-5 py-2.5 rounded-lg text-xs font-bold transition-colors shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Approve Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full">
+                <table class="w-full min-w-[900px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] border-b border-gray-200 dark:border-white/5 sticky top-0 z-10 transition-colors">
+                        <tr>
+                            <th class="p-4 w-12 text-center">
+                                <label for="selectAll" class="sr-only">Select All Offers</label>
+                                <input type="checkbox" id="selectAll" onchange="document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked)" class="w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                            </th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Operator</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Offer Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Discount</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Valid Until</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase tracking-widest font-bold transition-colors">Notes & Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for offer in offers %}
+                        {% set row_class = "opacity-50" if offer.status == 2 else "" %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors {{ row_class }}">
+                            <td class="p-4 text-center align-top pt-6">
+                                {% if offer.status == 0 %}
+                                    <label for="offer_{{ offer.id }}" class="sr-only">Select Offer</label>
+                                    <input type="checkbox" id="offer_{{ offer.id }}" name="offer_ids" value="{{ offer.id }}" form="bulk-offer-form" class="row-checkbox w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black cursor-pointer text-purple-600 dark:text-brand-purple focus:ring-purple-600 dark:focus:ring-brand-purple transition-colors">
+                                {% endif %}
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-building text-gray-400 dark:text-gray-500 mr-2 text-xs transition-colors"></i>{{ offer.operator }}</p>
+                            </td>
+                            <td class="p-4 align-top pt-6">
+                                <p class="text-sm font-bold text-blue-600 dark:text-brand-blue transition-colors">{{ offer.title }}</p>
+                                <p class="text-xs font-mono text-yellow-700 dark:text-brand-gold mt-1 bg-yellow-100 dark:bg-brand-gold/10 border border-yellow-300 dark:border-transparent inline-block px-1.5 rounded transition-colors">{{ offer.code }}</p>
+                            </td>
+                            <td class="p-4 text-center align-top pt-6">
+                                <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ "%.0f"|format(offer.discount) }}%</span>
+                            </td>
+                            <td class="p-4 text-center align-top pt-6">
+                                <p class="text-sm text-gray-700 dark:text-gray-300 transition-colors">{{ offer.valid_until }}</p>
+                            </td>
+                            <td class="p-4 text-center align-top pt-6">
+                                {% if offer.status == 1 %}
+                                    <span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm dark:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-colors">Active</span>
+                                {% elif offer.status == 2 %}
+                                    <span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded transition-colors">Rejected</span>
+                                {% else %}
+                                    <span class="text-[9px] font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest border border-yellow-200 dark:border-brand-gold/30 bg-yellow-50 dark:bg-brand-gold/10 px-2 py-1 rounded transition-colors">Pending</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="p-4 align-top min-w-[320px]">
+                                <div class="space-y-3">
+
+                                    {% if offer.operator_remarks %}
+                                        <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 p-2 rounded-lg text-left w-11/12 transition-colors">
+                                            <p class="text-[9px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mb-1 transition-colors"><i class="fa-solid fa-building mr-1"></i> {{ offer.operator }}</p>
+                                            <p class="text-xs text-gray-800 dark:text-gray-300 whitespace-pre-wrap transition-colors">"{{ offer.operator_remarks }}"</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if offer.feedback %}
+                                        <div class="bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 p-2 rounded-lg text-right ml-auto w-11/12 transition-colors">
+                                            <p class="text-[9px] text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest mb-1 transition-colors">You <i class="fa-solid fa-crown ml-1"></i></p>
+                                            <p class="text-xs text-gray-800 dark:text-gray-300 italic whitespace-pre-wrap transition-colors">"{{ offer.feedback }}"</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if offer.status == 0 %}
+                                        <div class="mt-2 text-[10px] text-yellow-600 dark:text-brand-gold font-bold uppercase tracking-widest flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-white/5 transition-colors">
+                                            <i class="fa-solid fa-hourglass-half"></i> Awaiting Master Batch Action
+                                        </div>
+                                    {% else %}
+                                        <div class="mt-2 text-[10px] text-gray-500 dark:text-gray-600 font-bold uppercase tracking-widest flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-white/5 transition-colors">
+                                            <i class="fa-solid fa-lock"></i> Audit Finalized
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="p-8 text-center text-gray-500 dark:text-gray-500 text-sm transition-colors">
+                                {% if search_query or status_filter != 'all' %}
+                                    No offers found matching your search or filter.
+                                {% else %}
+                                    No promotional offers have been submitted for audit.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function validateBatchSubmit() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert("Please select at least one offer using the checkboxes before submitting.");
+            return false;
+        }
+        return true;
+    }
+</script>
+{% endblock %}

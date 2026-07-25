@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Radhe Travels{% endblock %} | Premium Bus Booking</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
+    <script>
+        /* global tailwind */
+        tailwind.config = {
+            darkMode: 'class', // <--- ENABLES CLASS-BASED DARK MODE
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            red: '#d84e55',
+                            dark: '#0f172a',
+                            gray: '#f1f5f9',
+                            gold: '#fbbf24'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base Configuration */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main { flex: 1; }
+
+        /* Custom UI Buttons */
+        /* noinspection CssUnusedSymbol */
+        .royal-btn { background-color: #d84e55; color: white; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
+        .royal-btn:hover { background-color: #b93c42; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(216, 78, 85, 0.4); }
+
+        /* Slide-up animations for Flash Messages */
+        .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+
+<!-- We apply the dynamic background and text colors to the body here -->
+<body class="antialiased overflow-x-hidden bg-gray-50 dark:bg-[#020617] text-gray-900 dark:text-[#e2e8f0] transition-colors duration-300">
+
+    <nav class="bg-white/90 dark:bg-[#0f172a]/90 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 sticky top-0 z-50 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20">
+                <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='{{ url_for('passenger_home') }}'">
+                    <img src="{{ url_for('static', filename='image/icons/pro.jpeg') }}" alt="Radhe Travels" class="w-16 h-16 object-contain drop-shadow-lg rounded">
+                    <div>
+                        <h1 class="text-gray-900 dark:text-white font-heading font-extrabold text-2xl tracking-tight leading-none">Radhe <span class="text-brand-red">Travels</span></h1>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-6 lg:space-x-8">
+                    <a href="{{ url_for('passenger_home') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition">Home</a>
+                    <a href="{{ url_for('search_bus') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition">Search</a>
+
+                    <a href="{{ url_for('search_routes') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition">All Routes</a>
+                    <a href="{{ url_for('support') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition">Customer Care</a>
+
+                    <a href="{{ url_for('offers') }}" class="text-brand-gold font-bold hover:text-yellow-500 dark:hover:text-yellow-300 transition">Offers <i class="fa-solid fa-tag text-xs"></i></a>
+
+                    <div class="h-6 w-px bg-gray-300 dark:bg-white/10"></div>
+
+                    <!-- THE THEME TOGGLE BUTTON -->
+                    <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5 focus:outline-none rounded-lg text-sm p-2 transition">
+                        <i id="theme-toggle-dark-icon" class="fa-solid fa-moon hidden w-5 h-5 text-center leading-5 text-lg"></i>
+                        <i id="theme-toggle-light-icon" class="fa-solid fa-sun hidden w-5 h-5 text-center leading-5 text-lg"></i>
+                    </button>
+
+                    <div class="h-6 w-px bg-gray-300 dark:bg-white/10"></div>
+
+                    {% if session.get('user') %}
+                        <div class="relative group">
+                            <button class="flex items-center gap-2 text-gray-900 dark:text-white font-bold hover:text-brand-gold transition py-6">
+
+                                {% if session.get('user_profile_image') %}
+                                    <img src="{{ url_for('static', filename='uploads/profiles/' + session.get('user_profile_image')) }}" class="w-8 h-8 rounded-full border border-gray-300 dark:border-white/20 object-cover" alt="Avatar">
+                                {% else %}
+                                    <img src="https://ui-avatars.com/api/?name={{ session.get('user_name', 'Passenger') | replace(' ', '+') }}&background=fbbf24&color=000" class="w-8 h-8 rounded-full border border-gray-300 dark:border-white/20" alt="Avatar">
+                                {% endif %}
+
+                                <span>{{ session.get('user_name', 'My Account') }}</span>
+                                <i class="fa-solid fa-chevron-down text-xs text-gray-400 dark:text-gray-500 group-hover:text-brand-gold transition ml-1"></i>
+                            </button>
+
+                            <div class="absolute right-0 top-16 mt-1 w-52 bg-white dark:bg-[#131b2f] rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right z-50">
+                                <div class="py-2">
+                                    <a href="{{ url_for('profile') }}" class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-brand-gold transition"><i class="fa-solid fa-id-card w-5 text-center mr-1"></i> My Profile</a>
+                                    <a href="{{ url_for('history') }}" class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-brand-gold transition"><i class="fa-solid fa-clock-rotate-left w-5 text-center mr-1"></i> My Journeys</a>
+                                    <a href="{{ url_for('user_refunds') }}" class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-brand-gold transition"><i class="fa-solid fa-money-bill-transfer w-5 text-center mr-1"></i> My Refunds</a>
+
+                                    <hr class="my-1 border-gray-200 dark:border-white/10">
+                                    <a href="{{ url_for('logout') }}" class="block px-4 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 transition"><i class="fa-solid fa-power-off w-5 text-center mr-1"></i> Secure Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('login_page', mode='login') }}" class="text-gray-700 dark:text-gray-300 font-bold hover:text-gray-900 dark:hover:text-white transition">Sign In</a>
+                        <a href="{{ url_for('login_page', mode='register') }}" class="royal-btn px-6 py-2.5 rounded-full text-sm shadow-lg">Join Radhe Travels</a>
+                    {% endif %}
+                </div>
+
+                <div class="md:hidden flex items-center">
+                    <!-- THE MOBILE THEME TOGGLE BUTTON -->
+                    <button id="theme-toggle-mobile" type="button" class="mr-4 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5 focus:outline-none rounded-lg text-sm p-2 transition">
+                        <i id="theme-toggle-dark-icon-mobile" class="fa-solid fa-moon hidden w-5 h-5 text-center leading-5 text-lg"></i>
+                        <i id="theme-toggle-light-icon-mobile" class="fa-solid fa-sun hidden w-5 h-5 text-center leading-5 text-lg"></i>
+                    </button>
+
+                    <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none text-2xl transition">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-[#0f172a] border-t border-gray-200 dark:border-white/10 absolute w-full shadow-2xl z-50">
+            <div class="px-4 pt-4 pb-8 space-y-2">
+                <a href="{{ url_for('passenger_home') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition">Home</a>
+                <a href="{{ url_for('search_bus') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition">Search Fleets</a>
+
+                <a href="{{ url_for('search_routes') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition">All Routes</a>
+                <a href="{{ url_for('support') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition">Customer Care</a>
+
+                <a href="{{ url_for('offers') }}" class="block px-4 py-3 text-base font-bold text-brand-gold hover:text-yellow-500 dark:hover:text-yellow-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition"><i class="fa-solid fa-tag mr-2"></i> Special Offers</a>
+                <hr class="border-gray-200 dark:border-white/10 my-4">
+
+                {% if session.get('user') %}
+                    <a href="{{ url_for('profile') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-brand-gold hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition"><i class="fa-solid fa-id-card w-6"></i> My Profile</a>
+                    <a href="{{ url_for('history') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-brand-gold hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition"><i class="fa-solid fa-clock-rotate-left w-6"></i> My Journeys</a>
+                    <a href="{{ url_for('user_refunds') }}" class="block px-4 py-3 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-brand-gold hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition"><i class="fa-solid fa-money-bill-transfer w-6"></i> My Refunds</a>
+
+                    <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-base font-bold text-red-500 dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 rounded-xl transition mt-2"><i class="fa-solid fa-power-off w-6"></i> Logout</a>
+                {% else %}
+                    <div class="grid grid-cols-2 gap-3 mt-6">
+                        <a href="{{ url_for('login_page', mode='login') }}" class="text-center border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white font-bold px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">Sign In</a>
+                        <a href="{{ url_for('login_page', mode='register') }}" class="text-center royal-btn px-4 py-3 rounded-xl shadow-lg">Join Radhe Travels</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 relative z-[100]">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="p-4 mb-4 rounded-xl flex items-center gap-3 shadow-2xl text-sm font-bold animate-slide-up border backdrop-blur-md
+                            {% if category == 'danger' %} bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30
+                            {% elif category == 'success' %} bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/30
+                            {% elif category == 'warning' %} bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/30
+                            {% else %} bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30 {% endif %}">
+                            <i class="fa-solid text-lg
+                                {% if category == 'danger' %}fa-triangle-exclamation
+                                {% elif category == 'success' %}fa-circle-check
+                                {% elif category == 'warning' %}fa-triangle-exclamation
+                                {% else %}fa-circle-info{% endif %}">
+                            </i>
+                            <span class="tracking-wide">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-gray-100 dark:bg-[#0b1121] text-gray-600 dark:text-white pt-16 pb-8 border-t border-gray-200 dark:border-white/5 mt-auto relative z-50 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-4 mb-6">
+                       <img src="{{ url_for('static', filename='image/icons/pro.jpeg') }}" alt="Radhe Travels" class="w-14 h-14 object-contain opacity-90 rounded">
+                        <span class="font-heading font-extrabold text-2xl tracking-tight text-gray-900 dark:text-white">Radhe <span class="text-brand-red">Travels</span></span>
+                    </div>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-sm">
+                        Gujarat's most trusted premium bus booking platform. Travel in comfort, book with confidence, and experience premium treatment on every journey.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-lg mb-6 font-heading text-gray-900 dark:text-white">Quick Links</h4>
+                    <ul class="space-y-3 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a href="{{ url_for('about') }}" class="hover:text-brand-gold transition"><i class="fa-solid fa-chevron-right text-[10px] mr-2 text-brand-gold"></i>About Us</a></li>
+                        <li><a href="{{ url_for('search_routes') }}" class="hover:text-brand-gold transition"><i class="fa-solid fa-chevron-right text-[10px] mr-2 text-brand-gold"></i>Browse Routes</a></li>
+                        <li><a href="{{ url_for('offers') }}" class="hover:text-brand-gold transition"><i class="fa-solid fa-chevron-right text-[10px] mr-2 text-brand-gold"></i>Special Offers</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-lg mb-6 font-heading text-gray-900 dark:text-white">Legal & Security</h4>
+                    <ul class="space-y-3 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a href="{{ url_for('terms') }}" class="hover:text-brand-red transition">Terms & Conditions</a></li>
+                        <li><a href="{{ url_for('privacy') }}" class="hover:text-brand-red transition">Data Privacy Protocol</a></li>
+                        <li><a href="{{ url_for('feedback') }}" class="hover:text-brand-red transition">Customer Feedback</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 dark:border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                <p class="text-gray-400 dark:text-gray-500 text-xs font-mono tracking-widest uppercase">© 2026 Radhe Travels. Secure Node v2.4.</p>
+
+                <div class="flex space-x-4">
+                    <a href="https://www.facebook.com/radhetravels" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-brand-red hover:text-white dark:hover:bg-brand-red dark:hover:text-white transition shadow-sm">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </a>
+                    <a href="https://x.com/radhetravels" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-brand-red hover:text-white dark:hover:bg-brand-red dark:hover:text-white transition shadow-sm">
+                        <i class="fa-brands fa-x-twitter"></i>
+                    </a>
+                    <a href="https://www.instagram.com/radhetravels" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-white/5 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-brand-red hover:text-white dark:hover:bg-brand-red dark:hover:text-white transition shadow-sm">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // --- DARK MODE TOGGLE LOGIC ---
+        const themeToggleDarkIcons = document.querySelectorAll('#theme-toggle-dark-icon, #theme-toggle-dark-icon-mobile');
+        const themeToggleLightIcons = document.querySelectorAll('#theme-toggle-light-icon, #theme-toggle-light-icon-mobile');
+        const themeToggleBtns = document.querySelectorAll('#theme-toggle, #theme-toggle-mobile');
+
+        // Check Local Storage or System Preference on Load
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcons.forEach(i => i.classList.remove('hidden'));
+            document.documentElement.classList.add('dark');
+        } else {
+            themeToggleDarkIcons.forEach(i => i.classList.remove('hidden'));
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Apply Listeners to both Desktop and Mobile buttons
+        themeToggleBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                themeToggleDarkIcons.forEach(i => i.classList.toggle('hidden'));
+                themeToggleLightIcons.forEach(i => i.classList.toggle('hidden'));
+
+                if (localStorage.getItem('color-theme')) {
+                    if (localStorage.getItem('color-theme') === 'light') {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('color-theme', 'dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('color-theme', 'light');
+                    }
+                } else {
+                    if (document.documentElement.classList.contains('dark')) {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('color-theme', 'light');
+                    } else {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('color-theme', 'dark');
+                    }
+                }
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,708 @@
+{% extends "operator/base_operator.html" %}
+
+{% block title %}Operations Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Custom Inputs Light/Dark Handling */
+    .royal-input, .royal-select {
+        padding: 12px 16px; border-radius: 12px; width: 100%;
+        transition: all 0.3s; font-size: 0.85rem; outline: none;
+    }
+
+    .dark .royal-input, .dark .royal-select {
+        background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;
+    }
+    .dark .royal-input:focus, .dark .royal-select:focus {
+        border-color: #d84e55; background: rgba(0,0,0,0.6); box-shadow: 0 0 0 4px rgba(216, 78, 85, 0.1);
+    }
+
+    html:not(.dark) .royal-input, html:not(.dark) .royal-select {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+    }
+    html:not(.dark) .royal-input:focus, html:not(.dark) .royal-select:focus {
+        border-color: #d84e55; box-shadow: 0 0 0 3px rgba(216, 78, 85, 0.1);
+    }
+
+    /* Select Dropdowns */
+    select.royal-select option, select.royal-input option { background-color: #ffffff; color: #0f172a; }
+    .dark select.royal-select option, .dark select.royal-input option { background-color: #0f172a; color: white; }
+
+    select.royal-select option:disabled { color: #94a3b8; font-style: italic; }
+    .dark select.royal-select option:disabled { color: #475569; font-style: italic; }
+
+    /* Date Picker Icons */
+    ::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+    ::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    .dark ::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+    /* Auto-expanding Reply Input */
+    .reply-input {
+        padding: 10px 12px; border-radius: 8px; width: 100%;
+        font-size: 0.75rem; outline: none; transition: border-color 0.3s;
+        resize: none; overflow: hidden; min-height: 38px; line-height: 1.4;
+    }
+
+    .dark .reply-input {
+        background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: white;
+    }
+    .dark .reply-input:focus { border-color: #3b82f6; }
+
+    html:not(.dark) .reply-input {
+        background: white; border: 1px solid #e2e8f0; color: #0f172a;
+    }
+    html:not(.dark) .reply-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+    html:not(.dark) .reply-input::placeholder { color: #94a3b8; }
+
+    /* Tab Buttons */
+    .tab-btn {
+        padding: 12px 24px; font-weight: bold; font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase;
+        border-bottom: 3px solid transparent; transition: all 0.3s; color: #64748b;
+    }
+    .dark .tab-btn:hover { color: white; }
+    html:not(.dark) .tab-btn:hover { color: #0f172a; }
+
+    .dark .tab-btn.active { border-bottom-color: #d84e55; color: white; }
+    html:not(.dark) .tab-btn.active { border-bottom-color: #d84e55; color: #0f172a; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-[96%] 2xl:max-w-[1600px] mx-auto pb-20 relative">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-8 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Operations Hub</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Manage Routes, Buses, Timetables, and Pricing from a single command center.</p>
+        </div>
+    </header>
+
+    <div class="flex space-x-2 md:space-x-8 border-b border-gray-200 dark:border-white/10 mb-8 animate-slide-up overflow-x-auto whitespace-nowrap transition-colors">
+        <button id="btn-command" onclick="switchTab('command')" class="tab-btn active"><i class="fa-solid fa-layer-group mr-2"></i>1. Command Center</button>
+        <button id="btn-status" onclick="switchTab('status')" class="tab-btn"><i class="fa-solid fa-satellite-dish mr-2"></i>2. Network Status</button>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-8 p-4 rounded-xl flex items-center gap-3 {% if category == 'danger' %}bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-400{% elif category == 'warning' %}bg-yellow-50 dark:bg-yellow-500/20 border border-yellow-200 dark:border-yellow-500/50 text-yellow-600 dark:text-yellow-400{% else %}bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 text-green-600 dark:text-green-400{% endif %} animate-slide-up transition-colors shadow-sm">
+                    <i class="fa-solid {% if category == 'danger' or category == 'warning' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                    <span class="text-sm font-bold">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div id="tab-command" class="tab-content block animate-slide-up" style="animation-delay: 0.1s;">
+
+        <form method="POST" action="{{ url_for('operator_bulk_submit') }}" onsubmit="return validateBulkForm()">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+                <!-- Route Management -->
+                <div class="glass-card p-6 md:p-8 transition-colors">
+                    <h3 class="text-sm font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest mb-6 border-b border-gray-200 dark:border-white/5 pb-2 transition-colors"><i class="fa-solid fa-map-pin mr-2"></i> Route Management</h3>
+                    <div class="space-y-4">
+
+                        <div>
+                            <label for="sched_route_id" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Approved Route</label>
+                            <select name="sched_route_id" id="sched_route_id" class="royal-select">
+                                <option value="" selected>-- Choose Route for Timetable --</option>
+                                {% for r in approved_routes %}<option value="{{ r.id }}">{{ r.source }} ⇄ {{ r.destination }}</option>{% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="relative py-2 flex items-center">
+                            <div class="flex-grow border-t border-gray-200 dark:border-white/10 transition-colors"></div>
+                            <span class="shrink-0 mx-4 text-gray-500 text-[10px] font-bold uppercase tracking-widest transition-colors">OR Request New</span>
+                            <div class="flex-grow border-t border-gray-200 dark:border-white/10 transition-colors"></div>
+                        </div>
+
+                        <div class="relative">
+                            <label for="source_city" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Origin City</label>
+                            <select name="source_city" id="source_city" class="royal-input cursor-pointer text-xs">
+                                <option value="" selected>Select Origin</option>
+                                {% for city in gujarat_cities %}<option value="{{ city }}">{{ city }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <label for="destination_city" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Destination City</label>
+                            <select name="destination_city" id="destination_city" class="royal-input cursor-pointer text-xs">
+                                <option value="" selected>Select Destination</option>
+                                {% for city in gujarat_cities %}<option value="{{ city }}">{{ city }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="distance_km" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 mt-2 transition-colors">Distance (in KM)</label>
+                            <input type="number" name="distance_km" id="distance_km" placeholder="e.g. 520" class="royal-input text-xs" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bus Management -->
+                <div class="glass-card p-6 md:p-8 flex flex-col h-full transition-colors">
+                    <div>
+                        <h3 class="text-sm font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest mb-6 border-b border-gray-200 dark:border-white/5 pb-2 transition-colors"><i class="fa-solid fa-bus-simple mr-2"></i> Bus Management</h3>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="sched_bus_id" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Approved Bus</label>
+                                <select name="sched_bus_id" id="sched_bus_id" class="royal-select">
+                                    <option value="" selected>-- Choose Bus for Timetable --</option>
+                                    {% for b in approved_buses %}<option value="{{ b.id }}">{{ b.number }}</option>{% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="relative py-2 flex items-center">
+                                <div class="flex-grow border-t border-gray-200 dark:border-white/10 transition-colors"></div>
+                                <span class="shrink-0 mx-4 text-gray-500 text-[10px] font-bold uppercase tracking-widest transition-colors">OR Register New</span>
+                                <div class="flex-grow border-t border-gray-200 dark:border-white/10 transition-colors"></div>
+                            </div>
+
+                            {% set active_buses = buses | rejectattr('status', 'equalto', 3) | list %}
+                            {% set registered_types = active_buses | map(attribute='type') | list %}
+
+                            {% if active_buses|length >= 3 %}
+                                <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-5 rounded-xl text-center transition-colors">
+                                    <i class="fa-solid fa-lock text-red-500 dark:text-red-400 text-4xl mb-3 transition-colors"></i>
+                                    <h4 class="text-gray-900 dark:text-white font-bold text-lg mb-1 transition-colors">Bus Limit Reached</h4>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">Maximum limit of 3 active buses reached.</p>
+                                </div>
+                            {% else %}
+                                <div>
+                                    <label for="bus_number" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Registration Number</label>
+                                    <input type="text" name="bus_number" id="bus_number" placeholder="GJ-01-RV-2026" class="royal-input font-mono uppercase text-xs">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="bus_type" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Category</label>
+                                        <select name="bus_type" id="bus_type" class="royal-select text-xs">
+                                            <option value="" selected>Type</option>
+                                            {% if 'AC' in registered_types %}<option value="AC" disabled>AC (Owned)</option>{% else %}<option value="AC">AC</option>{% endif %}
+                                            {% if 'Non-AC' in registered_types %}<option value="Non-AC" disabled>Non-AC (Owned)</option>{% else %}<option value="Non-AC">Non-AC</option>{% endif %}
+                                            {% if 'Sleeper' in registered_types %}<option value="Sleeper" disabled>Sleeper (Owned)</option>{% else %}<option value="Sleeper">Sleeper</option>{% endif %}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="total_seats" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 transition-colors">Capacity</label>
+                                        <input type="number" name="total_seats" id="total_seats" placeholder="36" class="royal-input text-xs" min="10" max="60">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="amenities" class="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-2 mt-2 transition-colors">Amenities</label>
+                                    <input type="text" name="amenities" id="amenities" placeholder="WiFi..." class="royal-input text-xs">
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-white/5 flex-1 transition-colors">
+                        <h4 class="text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-4 transition-colors"><i class="fa-solid fa-pen-ruler mr-1.5"></i> Build Seat Layouts</h4>
+                        <div class="space-y-3 max-h-[180px] overflow-y-auto pr-1">
+                            {% for b in buses %}
+                            <div class="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 p-3 rounded-lg flex justify-between items-center group hover:border-gray-300 dark:hover:border-white/10 transition-colors">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-900 dark:text-white font-mono transition-colors">{{ b.number }}</p>
+                                    <p class="text-[9px] text-gray-500 dark:text-gray-400 uppercase mt-0.5 transition-colors">{{ b.type }} • {{ b.seats }} Seats</p>
+                                </div>
+                                {% if b.status != 3 %}
+                                    <a href="{{ url_for('operator_build_layout', bus_id=b.id) }}" class="bg-purple-100 dark:bg-brand-purple/20 text-purple-700 dark:text-brand-purple hover:bg-purple-600 hover:text-white dark:hover:bg-brand-purple dark:hover:text-white border border-purple-200 dark:border-brand-purple/30 px-3 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1.5 shadow-sm dark:shadow-[0_0_10px_rgba(139,92,246,0.1)]">
+                                        <i class="fa-solid fa-pen-ruler"></i> {% if b.status == 0 %}Architect{% else %}Edit{% endif %}
+                                    </a>
+                                {% else %}
+                                    <span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase bg-red-100 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-1 rounded transition-colors">Rejected</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-[10px] text-gray-500 italic text-center py-2 transition-colors">No buses available.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timetable Management -->
+                <div class="glass-card p-6 md:p-8 transition-colors">
+                    <h3 class="text-sm font-bold text-yellow-600 dark:text-brand-gold uppercase tracking-widest mb-6 border-b border-gray-200 dark:border-white/5 pb-2 transition-colors"><i class="fa-solid fa-calendar-plus mr-2"></i> Deploy Timetable</h3>
+                    <div class="space-y-4">
+
+                        <div class="bg-gray-50 dark:bg-black/30 p-4 rounded-xl border border-gray-200 dark:border-white/5 space-y-3 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="schedule_type" value="single" class="w-3 h-3 text-brand-red bg-white dark:bg-black border-gray-300 dark:border-white/20 transition-colors" checked>
+                                    <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase transition-colors">Single</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="schedule_type" value="round" class="w-3 h-3 text-brand-red bg-white dark:bg-black border-gray-300 dark:border-white/20 transition-colors">
+                                    <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase transition-colors">Round</span>
+                                </label>
+                            </div>
+                            <label class="flex items-center gap-2 cursor-pointer w-fit mt-2">
+                                <input type="checkbox" name="is_recurring" id="is_recurring" value="1" class="w-4 h-4 text-brand-red rounded border-gray-300 dark:border-white/20 focus:ring-brand-red transition-colors">
+                                <span class="text-[10px] font-bold text-brand-red uppercase">Select Operating Days</span>
+                            </label>
+                        </div>
+
+                        <div id="field-single-date">
+                            <label for="trip_date" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Trip Date</label>
+                            <input type="date" name="trip_date" id="trip_date" class="royal-input text-xs">
+                        </div>
+
+                        <div id="field-recurring-dates" class="grid grid-cols-2 gap-4 hidden">
+                            <div><label for="start_date" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Start</label><input type="date" name="start_date" id="start_date" class="royal-input text-xs"></div>
+                            <div><label for="end_date" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">End</label><input type="date" name="end_date" id="end_date" class="royal-input text-xs"></div>
+                        </div>
+
+                        <div id="field-days" class="pt-2 border-t border-gray-200 dark:border-white/5 hidden transition-colors">
+                            <p class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Days</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                {% for day_val, day_name in [('0','Mon'), ('1','Tue'), ('2','Wed'), ('3','Thu'), ('4','Fri'), ('5','Sat'), ('6','Sun')] %}
+                                <label class="flex items-center gap-2 bg-white dark:bg-black/40 p-2 rounded hover:border-brand-red dark:hover:border-brand-red border border-gray-200 dark:border-white/5 cursor-pointer w-full transition-colors">
+                                    <input type="checkbox" name="days" value="{{ day_val }}" class="text-brand-red rounded border-gray-300 dark:border-white/20 focus:ring-brand-red cursor-pointer">
+                                    <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300 transition-colors">{{ day_name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label for="departure_time" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Departure</label><input type="time" name="departure_time" id="departure_time" class="royal-input pl-3"></div>
+                            <div><label for="arrival_time" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Arrival</label><input type="time" name="arrival_time" id="arrival_time" class="royal-input pl-3"></div>
+                        </div>
+
+                        <div id="field-return-times" class="grid grid-cols-2 gap-4 hidden">
+                            <div><label for="return_dep_input" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Return Dep.</label><input type="time" name="return_departure_time" id="return_dep_input" class="royal-input pl-3"></div>
+                            <div><label for="return_arr_input" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Return Arr.</label><input type="time" name="return_arrival_time" id="return_arr_input" class="royal-input pl-3"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-white/5 transition-colors">
+                        <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4"><i class="fa-solid fa-indian-rupee-sign mr-1.5 text-yellow-500 dark:text-brand-gold"></i> Fare Config (₹)</h4>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label for="seater_price" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Seater</label>
+                                <input type="number" name="seater_price" id="seater_price" placeholder="₹" class="royal-input text-xs" min="1">
+                            </div>
+                            <div>
+                                <label for="sleeper_price" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Sleeper</label>
+                                <input type="number" name="sleeper_price" id="sleeper_price" placeholder="₹" class="royal-input text-xs" min="1">
+                            </div>
+                            <div>
+                                <label for="ladies_price" class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Ladies</label>
+                                <input type="number" name="ladies_price" id="ladies_price" placeholder="₹" class="royal-input text-xs" min="1">
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-gray-500 mt-3 italic"><i class="fa-solid fa-circle-info text-yellow-600 dark:text-brand-gold mr-1 transition-colors"></i> Submitting this config instantly overwrites the base prices in the Seat Architect layout.</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="mt-8 mb-6 flex justify-center border-b border-gray-200 dark:border-white/5 pb-8 transition-colors">
+                <button type="submit" class="bg-brand-red hover:bg-red-600 text-white font-bold py-4 px-12 rounded-xl text-sm shadow-lg dark:shadow-[0_0_20px_rgba(216,78,85,0.4)] transition flex items-center gap-3">
+                    <i class="fa-solid fa-rocket"></i> Deploy Selected Operations
+                </button>
+            </div>
+        </form>
+
+    </div>
+
+    <!-- Status Tab -->
+    <div id="tab-status" class="tab-content hidden space-y-8 animate-slide-up" style="animation-delay: 0.1s;">
+
+        <!-- Routes Status Table -->
+        <div class="glass-card overflow-hidden flex flex-col transition-colors">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center shrink-0 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-route text-purple-500 dark:text-brand-purple mr-2 transition-colors"></i> Route Network Status</h3>
+                <span class="bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-3 py-1 rounded border border-blue-200 dark:border-blue-500/20 transition-colors">{{ routes|length }} Routes</span>
+            </div>
+            <div class="overflow-x-auto w-full flex-1">
+                <table class="w-full min-w-[800px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] border-b border-gray-200 dark:border-white/5 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Route Path</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Route Distance</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Admin Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for r in routes %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.source }}</span>
+                                    <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-600 text-xs transition-colors"></i>
+                                    <span class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ r.destination }}</span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-xs text-gray-600 dark:text-gray-400 font-mono transition-colors">{{ r.distance }} KM</td>
+                            <td class="p-4 text-center">
+                                {% if r.status == 1 %}<span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 px-2 py-1 rounded transition-colors">Approved</span>
+                                {% elif r.status == 2 %}<span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 px-2 py-1 rounded transition-colors">Rejected</span>
+                                {% else %}<span class="text-[9px] font-bold text-yellow-600 dark:text-yellow-400 uppercase bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 px-2 py-1 rounded transition-colors">Pending</span>{% endif %}
+                            </td>
+                            <td class="p-4 min-w-[280px]">
+                                {% if r.feedback %}<p class="text-[10px] text-gray-700 dark:text-gray-300 italic mb-2 transition-colors"><i class="fa-solid fa-crown text-purple-500 dark:text-purple-400 mr-1 transition-colors"></i> "{{ r.feedback }}"</p>{% endif %}
+                                <form method="POST" action="{{ url_for('operator_route_reply', route_id=r.id) }}" class="flex gap-2">
+                                    <label for="route_reply_{{ r.id }}" class="sr-only">Reply</label>
+                                    <textarea name="operator_remarks" id="route_reply_{{ r.id }}" placeholder="Reply..." class="reply-input" rows="1" required></textarea>
+                                    <button type="submit" aria-label="Send" class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 text-white px-3 rounded-lg shadow-sm"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-8 text-center text-gray-500 text-sm">No routes mapped yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bus Status Table -->
+        <div class="glass-card overflow-hidden flex flex-col transition-colors">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center shrink-0 transition-colors">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-bus text-yellow-600 dark:text-brand-gold mr-2 transition-colors"></i> Bus & Seat Layout Status</h3>
+                <span class="bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-3 py-1 rounded border border-blue-200 dark:border-blue-500/20 transition-colors">{{ buses|length }} Buses</span>
+            </div>
+            <div class="overflow-x-auto w-full flex-1">
+                <table class="w-full min-w-[850px] text-left">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] border-b border-gray-200 dark:border-white/5 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Bus Details</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-right transition-colors">Bus Layout Action</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Admin Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for b in buses %}
+                        {% set row_class = "opacity-50" if b.status == 3 else "" %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors {{ row_class }}">
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white font-mono transition-colors">{{ b.number }}</p>
+                                <p class="text-[10px] text-yellow-700 dark:text-brand-gold uppercase transition-colors"><i class="fa-solid fa-tag"></i> {{ b.type }} ({{ b.seats }} Seats)</p>
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if b.status == 1 %}<span class="text-[9px] font-bold text-yellow-600 dark:text-yellow-400 uppercase bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 px-2 py-1 rounded transition-colors">Pending</span>
+                                {% elif b.status == 2 %}<span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 px-2 py-1 rounded transition-colors">Approved</span>
+                                {% elif b.status == 3 %}<span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 px-2 py-1 rounded transition-colors">Rejected</span>
+                                {% else %}<span class="text-[9px] font-bold text-gray-600 dark:text-gray-400 uppercase bg-gray-100 dark:bg-gray-500/10 border border-gray-300 dark:border-gray-500/30 px-2 py-1 rounded transition-colors">No Layout</span>{% endif %}
+                            </td>
+                            <td class="p-4 text-right">
+                                {% if b.status != 3 %}
+                                    <a href="{{ url_for('operator_build_layout', bus_id=b.id) }}" class="bg-purple-600 hover:bg-purple-700 dark:bg-brand-purple dark:hover:bg-purple-500 text-white text-[10px] font-bold px-4 py-2 rounded-lg transition-colors"><i class="fa-solid fa-pen-ruler mr-1"></i> {% if b.status == 0 %}Architect{% else %}Edit Layout{% endif %}</a>
+                                {% else %}
+                                    <span class="text-[10px] text-gray-500 font-bold uppercase">Locked</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 min-w-[280px]">
+                                {% if b.status != 0 %}
+                                    {% if b.feedback %}<p class="text-[10px] text-gray-700 dark:text-gray-300 italic mb-2 transition-colors"><i class="fa-solid fa-crown text-purple-500 dark:text-purple-400 mr-1 transition-colors"></i> "{{ b.feedback }}"</p>{% endif %}
+                                    {% if b.status != 3 %}
+                                        <form method="POST" action="{{ url_for('operator_layout_reply', bus_id=b.id) }}" class="flex gap-2">
+                                            <label for="reply_bus_{{ b.id }}" class="sr-only">Reply</label>
+                                            <textarea id="reply_bus_{{ b.id }}" name="operator_remarks" placeholder="Reply..." class="reply-input" rows="1" required></textarea>
+                                            <button type="submit" aria-label="Send" class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 text-white px-3 rounded-lg shadow-sm"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-8 text-center text-gray-500 text-sm">No buses registered yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Timetables Status Table -->
+        <div class="glass-card overflow-hidden flex flex-col transition-colors">
+            <div class="p-6 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 transition-colors">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white transition-colors"><i class="fa-solid fa-calendar-check text-blue-500 dark:text-blue-400 mr-2 transition-colors"></i> Timetable Status</h3>
+                </div>
+                <form method="GET" action="{{ url_for('operator_operations_hub') }}" class="w-full md:w-auto relative">
+                    <input type="hidden" name="tab" value="status">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm transition-colors"></i>
+                    <label for="sched_search" class="sr-only">Search</label>
+                    <input type="text" name="search" id="sched_search" value="{{ search_query }}" placeholder="Search schedules..." class="bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white text-sm rounded-xl py-2 pl-9 pr-8 focus:border-yellow-500 dark:focus:border-brand-gold outline-none transition-colors w-full md:w-64 shadow-sm dark:shadow-inner">
+                    {% if search_query %}
+                        <a href="{{ url_for('operator_operations_hub', tab='status') }}" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors" title="Clear Search"><i class="fa-solid fa-xmark"></i></a>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="overflow-x-auto w-full flex-1">
+                <table class="w-full text-left min-w-[850px]">
+                    <thead class="bg-gray-100 dark:bg-[#0f172a] border-b border-gray-200 dark:border-white/5 transition-colors">
+                        <tr>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Bus & Route</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Timings</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold text-center transition-colors">Status</th>
+                            <th class="p-4 text-[10px] text-gray-600 dark:text-gray-500 uppercase font-bold transition-colors">Admin Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5 transition-colors">
+                        {% for s in schedules %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="p-4">
+                                <p class="text-xs font-bold text-yellow-700 dark:text-brand-gold mb-1 transition-colors"><i class="fa-solid fa-bus mr-1"></i> {{ s.bus }}</p>
+                                <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-2 uppercase transition-colors">{{ s.bus_type }} • {{ s.total_seats }} Seats</p>
+
+                                <div class="mt-2 bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 p-2 rounded inline-block w-full transition-colors">
+                                    {% if s.seater_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Seater Rate: ₹ {{ "%.2f"|format(s.seater_price) }}</span>{% endif %}
+                                    {% if s.sleeper_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Sleeper Rate: ₹ {{ "%.2f"|format(s.sleeper_price) }}</span>{% endif %}
+                                    {% if s.ladies_price > 0 %}<span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Ladies Rate: ₹ {{ "%.2f"|format(s.ladies_price) }}</span>{% endif %}
+                                    {% if not s.seater_price and not s.sleeper_price and not s.ladies_price %}
+                                        <span class="text-[10px] font-bold text-green-600 dark:text-green-400 font-mono block transition-colors">Base Fare: ₹ {{ "%.2f"|format(s.price) }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white mb-2 transition-colors">{{ s.source }} <i class="fa-solid fa-arrow-right text-gray-400 dark:text-gray-600 text-[10px] mx-1 transition-colors"></i> {{ s.destination }}</p>
+                                <div class="bg-gray-100 dark:bg-black/40 p-2 rounded border border-gray-200 dark:border-white/5 inline-block transition-colors">
+                                    <p class="text-[11px] text-gray-700 dark:text-gray-300 font-mono transition-colors"><i class="fa-regular fa-calendar text-purple-500 dark:text-brand-purple mr-1 transition-colors"></i> {{ s.date }}</p>
+                                    <p class="text-[11px] text-gray-900 dark:text-white font-mono mt-1 transition-colors"><i class="fa-regular fa-clock text-purple-500 dark:text-brand-purple mr-1 transition-colors"></i> {{ s.timings }}</p>
+                                </div>
+                                <p class="text-[9px] text-blue-600 dark:text-brand-blue uppercase font-bold mt-2 transition-colors">{{ s.pattern }}</p>
+                                {% if s.is_batch %}<span class="inline-block mt-1 text-[9px] font-bold text-purple-700 dark:text-brand-purple bg-purple-100 dark:bg-brand-purple/10 px-1.5 py-0.5 rounded uppercase transition-colors">Batch</span>{% endif %}
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if s.status == 1 %}<span class="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 px-2 py-1 rounded transition-colors">Approved</span>
+                                {% elif s.status == 2 %}<span class="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 px-2 py-1 rounded transition-colors">Rejected</span>
+                                {% else %}<span class="text-[9px] font-bold text-yellow-600 dark:text-yellow-400 uppercase bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 px-2 py-1 rounded transition-colors">Pending</span>{% endif %}
+                            </td>
+                            <td class="p-4 min-w-[280px]">
+                                {% if s.feedback %}<p class="text-[10px] text-gray-700 dark:text-gray-300 italic mb-2 transition-colors"><i class="fa-solid fa-crown text-purple-500 dark:text-purple-400 mr-1 transition-colors"></i> "{{ s.feedback }}"</p>{% endif %}
+
+                                <form method="POST" action="{{ url_for('operator_schedule_reply', schedule_id=s.display_id) }}" class="flex gap-2">
+                                    <label for="reply_sched_{{ s.display_id }}" class="sr-only">Reply</label>
+                                    <textarea id="reply_sched_{{ s.display_id }}" name="operator_remarks" placeholder="Reply..." class="reply-input" rows="1" required></textarea>
+                                    <button type="submit" aria-label="Send" class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 text-white px-3 rounded-lg shadow-sm"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-8 text-center text-gray-500 text-sm">No schedules yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- CUSTOM ALERT MODAL -->
+<!-- ========================================== -->
+<div id="custom-alert-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl border border-gray-200 dark:border-white/10 p-6 md:p-8 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col items-center text-center">
+
+        <div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-600 dark:text-brand-gold mb-4 shadow-inner">
+            <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+        </div>
+
+        <h3 id="alert-modal-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Notice</h3>
+        <p id="alert-modal-message" class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+            Message goes here.
+        </p>
+
+        <button type="button" onclick="closeAlertModal()" class="w-full px-6 py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-bold shadow-lg transition-colors">
+            Understood
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Custom Modal Functions
+    function openAlertModal(title, message) {
+        document.getElementById('alert-modal-title').innerText = title;
+        document.getElementById('alert-modal-message').innerText = message;
+
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.children[0].classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeAlertModal() {
+        const modal = document.getElementById('custom-alert-modal');
+        modal.classList.add('opacity-0');
+        modal.children[0].classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Simplified Tab Switcher Logic letting CSS handle colors
+    function switchTab(tabId) {
+        const validTabs = ['command', 'status'];
+        if (!validTabs.includes(tabId)) {
+            tabId = 'command';
+        }
+
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+
+        const targetTab = document.getElementById('tab-' + tabId);
+        if (targetTab) targetTab.classList.remove('hidden');
+
+        const activeBtn = document.getElementById('btn-' + tabId);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+
+        window.history.replaceState(null, null, '?tab=' + tabId);
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'command';
+    switchTab(initialTab);
+
+    // Schedule Logic
+    const today = new Date().toISOString().split('T')[0];
+    const td = document.getElementById('trip_date');
+    const sd = document.getElementById('start_date');
+    const ed = document.getElementById('end_date');
+
+    if(td) td.setAttribute('min', today);
+    if(sd) sd.setAttribute('min', today);
+    if(ed) ed.setAttribute('min', today);
+
+    if(sd) {
+        sd.addEventListener('change', function() {
+            if(ed) ed.setAttribute('min', this.value);
+        });
+    }
+
+    const radios = document.querySelectorAll('input[name="schedule_type"]');
+    const recurCheck = document.getElementById('is_recurring');
+
+    function toggleScheduleFields() {
+        const selectedRadio = document.querySelector('input[name="schedule_type"]:checked');
+        const type = selectedRadio ? selectedRadio.value : 'single';
+        const isRecur = recurCheck ? recurCheck.checked : false;
+
+        ['field-single-date', 'field-recurring-dates', 'field-days', 'field-return-times'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.style.display = "none";
+        });
+
+        if (type === "round") {
+            const el = document.getElementById('field-return-times');
+            if(el) el.style.display = "grid";
+        }
+
+        if (isRecur) {
+            const fd = document.getElementById('field-recurring-dates');
+            const fdays = document.getElementById('field-days');
+            if(fd) fd.style.display = "grid";
+            if(fdays) fdays.style.display = "block";
+        } else {
+            const singd = document.getElementById('field-single-date');
+            if(singd) singd.style.display = "block";
+        }
+    }
+
+    radios.forEach(r => r.addEventListener("change", toggleScheduleFields));
+    if (recurCheck) recurCheck.addEventListener("change", toggleScheduleFields);
+    toggleScheduleFields();
+
+    // Custom Validation for the newly arranged Bulk Submit Form (Now using Custom Modal)
+    function validateBulkForm() {
+        // 1. Check Route
+        const src = document.getElementById('source_city').value;
+        const dest = document.getElementById('destination_city').value;
+        const dist = document.getElementById('distance_km').value;
+        if (src || dest || dist) {
+            if (!src || !dest || !dist) {
+                openAlertModal("Incomplete Route Data", "Please fill out all 3 fields (Origin, Destination, Distance) to submit a new Route.");
+                return false;
+            }
+        }
+
+        // 2. Check Bus
+        const bnum = document.getElementById('bus_number');
+        const btyp = document.getElementById('bus_type');
+        const bseat = document.getElementById('total_seats');
+        if (bnum && btyp && bseat) {
+            if (bnum.value || btyp.value || bseat.value) {
+                if (!bnum.value || !btyp.value || !bseat.value) {
+                    openAlertModal("Incomplete Bus Data", "Please provide Registration Number, Category, and Capacity to register a new Bus.");
+                    return false;
+                }
+            }
+        }
+
+        // 3. Check Schedule OR Prices
+        const dep = document.getElementById('departure_time').value;
+        const arr = document.getElementById('arrival_time').value;
+        const tripDate = document.getElementById('trip_date').value;
+        const isRecur = document.getElementById('is_recurring').checked;
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+
+        const pSeat = document.querySelector('input[name="seater_price"]');
+        const pSleep = document.querySelector('input[name="sleeper_price"]');
+        const pLady = document.querySelector('input[name="ladies_price"]');
+
+        const hasPriceInput = (pSeat && pSeat.value) || (pSleep && pSleep.value) || (pLady && pLady.value);
+        const hasScheduleInput = dep || arr || tripDate || (isRecur && (startDate || endDate));
+
+        if (hasScheduleInput || hasPriceInput) {
+            const busId = document.getElementById('sched_bus_id').value;
+
+            if (!busId) {
+                openAlertModal("Missing Bus Selection", "You must select an Approved Bus from the dropdown to deploy schedules or update fare configs.");
+                return false;
+            }
+
+            if (hasScheduleInput) {
+                const routeId = document.getElementById('sched_route_id').value;
+                if (!routeId) {
+                    openAlertModal("Missing Route Selection", "You must select an Approved Route from the dropdown to deploy a timetable.");
+                    return false;
+                }
+                if (!dep || !arr) {
+                    openAlertModal("Missing Timings", "Departure and Arrival times are required to set a schedule.");
+                    return false;
+                }
+                if (isRecur) {
+                    if (document.querySelectorAll('input[name="days"]:checked').length === 0) {
+                        openAlertModal("Missing Operating Days", "Please select at least one operating day for your recurring schedule.");
+                        return false;
+                    }
+                    if (!startDate || !endDate) {
+                        openAlertModal("Missing Dates", "Start and End dates are required for recurring trips.");
+                        return false;
+                    }
+                } else {
+                    if (!tripDate) {
+                        openAlertModal("Missing Date", "A trip date is required for single schedules.");
+                        return false;
+                    }
+                }
+            }
+        }
+
+        const hasRoute = src && dest && dist;
+        const hasBus = bnum && btyp && bseat && bnum.value && btyp.value && bseat.value;
+        if (!hasRoute && !hasBus && !hasScheduleInput && !hasPriceInput) {
+            openAlertModal("Empty Submission", "Please fill out at least one section (Route, Bus, Schedule, or Fares) to execute an operation.");
+            return false;
+        }
+
+        return true;
+    }
+</script>
+{% endblock %}

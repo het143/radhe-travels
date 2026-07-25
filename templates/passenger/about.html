@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Our Story{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* 0. FORCE TRANSPARENT BODY SO FIXED BACKGROUND SHOWS THROUGH */
+    html, body {
+        background-color: transparent !important;
+    }
+
+    /* 1. HERO BACKGROUND (LIGHT & DARK IMAGES) */
+    .hero-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        z-index: -10;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: transform 0.1s ease-out, background-image 0.5s ease;
+
+        /* LIGHT MODE IMAGE (Modern System Architecture / Clean Space) */
+        background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Light Mode Overlay */
+    .hero-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(249, 250, 251, 0.8); /* Slightly heavier tint for the bright image */
+        backdrop-filter: blur(4px); /* Increased blur for better text contrast */
+        transition: background 0.5s ease;
+    }
+
+    /* DARK MODE IMAGE (Digital Network / Server Infrastructure) */
+    .dark .hero-bg {
+        background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=2000&q=80');
+    }
+
+    /* Dark Mode Overlay */
+    .dark .hero-bg::after {
+        background: rgba(15, 23, 42, 0.85);
+    }
+
+    /* Glass Cards */
+    .glass-card {
+        backdrop-filter: blur(16px);
+        transition: all 0.3s;
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .glass-card:hover { transform: translateY(-5px); border-color: #d84e55; }
+
+    /* Architect Cards */
+    .architect-card {
+        border-radius: 24px; padding: 30px;
+        text-align: center; position: relative; overflow: hidden;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(16px);
+    }
+
+    .dark .architect-card {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    html:not(.dark) .architect-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .architect-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-color: var(--glow-color, #fbbf24); }
+    .dark .architect-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+    .architect-card::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+        background: linear-gradient(90deg, transparent, var(--glow-color, #fbbf24), transparent);
+    }
+
+    /* Slide-up animations */
+    .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-bg" id="hero-bg"></div>
+
+<div class="pt-20 pb-20 lg:pt-32 lg:pb-32 px-6 animate-slide-up relative z-10">
+    <div class="max-w-4xl mx-auto text-center">
+        <span class="inline-block px-4 py-1.5 rounded-full bg-brand-red/10 border border-brand-red/30 text-brand-red text-[10px] font-bold uppercase tracking-widest mb-6 backdrop-blur-md transition-colors">
+            Our Mission
+        </span>
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-heading font-black text-gray-900 dark:text-white leading-tight mb-6 drop-shadow-md transition-colors">
+            Elevating the <br>Inter-City Journey.
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed transition-colors">
+            Radhe Travels is a premium mobility network designed to bridge the gap between traditional road travel and first-class aviation standards.
+        </p>
+    </div>
+</div>
+
+<div class="container mx-auto px-6 py-10 pb-32 relative z-10">
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-32 animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="glass-card p-8 rounded-3xl text-center group">
+            <div class="w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 text-3xl mx-auto mb-6 border border-blue-200 dark:border-blue-500/20 transition-all group-hover:scale-110 shadow-sm">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 transition-colors">Zero-Trust Security</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-500 leading-relaxed transition-colors">Encrypted booking nodes, secure payment gateways, and rigorous operator verification protocols ensure absolute safety.</p>
+        </div>
+
+        <div class="glass-card p-8 rounded-3xl text-center border-brand-red/30 group hover:border-brand-red">
+            <div class="w-16 h-16 bg-red-100 dark:bg-brand-red/10 rounded-2xl flex items-center justify-center text-brand-red text-3xl mx-auto mb-6 border border-red-200 dark:border-brand-red/20 transition-all group-hover:scale-110 shadow-sm">
+                <i class="fa-solid fa-couch"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 transition-colors">The Royal Fleet</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-500 leading-relaxed transition-colors">We strictly partner with operators utilizing AC Sleeper coaches, guaranteeing an ergonomic and private travel experience.</p>
+        </div>
+
+        <div class="glass-card p-8 rounded-3xl text-center group">
+            <div class="w-16 h-16 bg-green-100 dark:bg-green-500/10 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-400 text-3xl mx-auto mb-6 border border-green-200 dark:border-green-500/20 transition-all group-hover:scale-110 shadow-sm">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 transition-colors">Smart Infrastructure</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-500 leading-relaxed transition-colors">Powered by live manifests, dynamic seat mapping, and automated financial settlements for seamless operations.</p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto animate-slide-up" style="animation-delay: 0.2s;">
+        <div class="text-center mb-16">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-[0.3em] mb-3 transition-colors">The Engineering Team</h2>
+            <h3 class="text-3xl md:text-4xl font-heading font-black text-gray-900 dark:text-white transition-colors">System Architects</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-4 max-w-xl mx-auto transition-colors">This platform was designed and developed at the Department of Computer Science, Hemchandracharya North Gujarat University (HNGU).</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="architect-card" style="--glow-color: #fbbf24;">
+                <div class="w-20 h-20 mx-auto rounded-full bg-yellow-50 dark:bg-gray-800 border-2 border-yellow-200 dark:border-gray-700 flex items-center justify-center text-2xl text-yellow-600 dark:text-brand-gold mb-4 shadow-lg transition-colors">
+                    <i class="fa-solid fa-terminal"></i>
+                </div>
+                <h4 class="text-lg font-bold text-gray-900 dark:text-white transition-colors">Solanki Het</h4>
+                <p class="text-[10px] text-yellow-600 dark:text-brand-gold uppercase tracking-widest font-bold mt-1 mb-3 transition-colors">Lead Developer</p>
+                <p class="text-xs text-gray-600 dark:text-gray-500 transition-colors">Core system architecture, database design, and deployment protocols.</p>
+            </div>
+
+            <div class="architect-card" style="--glow-color: #fbbf24;">
+                <div class="w-20 h-20 mx-auto rounded-full bg-yellow-50 dark:bg-gray-800 border-2 border-yellow-200 dark:border-gray-700 flex items-center justify-center text-2xl text-yellow-600 dark:text-brand-gold mb-4 shadow-lg transition-colors">
+                    <i class="fa-solid fa-code"></i>
+                </div>
+                <h4 class="text-lg font-bold text-gray-900 dark:text-white transition-colors">Raval Vedant</h4>
+                <p class="text-[10px] text-yellow-600 dark:text-brand-gold uppercase tracking-widest font-bold mt-1 mb-3 transition-colors">Lead Developer</p>
+                <p class="text-xs text-gray-600 dark:text-gray-500 transition-colors">DFD design, ER diagram implementation, and user experience flow.</p>
+            </div>
+
+            <div class="architect-card border-brand-red/30 dark:bg-[rgba(216,78,85,0.05)] bg-[rgba(216,78,85,0.02)]" style="--glow-color: #d84e55;">
+                <div class="w-20 h-20 mx-auto rounded-full bg-red-50 dark:bg-brand-red/20 border-2 border-red-200 dark:border-brand-red/50 flex items-center justify-center text-2xl text-brand-red mb-4 shadow-lg transition-colors">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+                <h4 class="text-lg font-bold text-gray-900 dark:text-white transition-colors">Neha Mam</h4>
+                <p class="text-[10px] text-brand-red uppercase tracking-widest font-bold mt-1 mb-3 transition-colors">Project Guide</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">Strategic guidance, project mentorship, and technical validation.</p>
+            </div>
+        </div>
+
+        <div class="text-center mt-12">
+            <span class="inline-flex items-center gap-2 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-5 py-2.5 rounded-full text-xs text-gray-600 dark:text-gray-400 font-mono shadow-sm transition-colors backdrop-blur-md">
+                <i class="fa-solid fa-building-columns text-gray-500"></i> Dept. of Computer Science, HNGU
+            </span>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Mouse Parallax for Background (Matches Home Page)
+    document.addEventListener('mousemove', (e) => {
+        const bg = document.getElementById('hero-bg');
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        const dx = (cx - e.pageX) / 80;
+        const dy = (cy - e.pageY) / 80;
+
+        if(bg) bg.style.transform = `scale(1.05) translate(${dx}px, ${dy}px)`;
+    });
+</script>
+{% endblock %}

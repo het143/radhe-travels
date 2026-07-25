@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Radhe Travels | Universal Portal</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        /* global tailwind */
+        tailwind.config = {
+            darkMode: 'class', // <--- ENABLES CLASS-BASED DARK MODE
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: { brand: { red: '#d84e55', blue: '#3b82f6', purple: '#8b5cf6' } }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { margin: 0; overflow-x: hidden; font-family: 'Outfit', sans-serif; min-height: 100vh; transition: background-color 0.3s ease; }
+
+        /* Cinematic Background Responsive */
+        .bg-image {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover; background-position: center; z-index: -2;
+            transition: all 0.5s ease;
+        }
+
+        .dark .bg-image {
+            /* Kept Dark Mode exactly the same */
+            background-image: radial-gradient(circle at 50% 0%, rgba(216, 78, 85, 0.15), transparent 50%),
+                              radial-gradient(circle at 50% 100%, rgba(0,0,0,1), rgba(0,0,0,0.4)),
+                              url('https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071');
+        }
+
+        html:not(.dark) .bg-image {
+            /* Changed ONLY Light Mode to a bright daylight bus/travel aesthetic */
+            background-image: radial-gradient(circle at 50% 0%, rgba(216, 78, 85, 0.05), transparent 50%),
+                              radial-gradient(circle at 50% 100%, rgba(248,250,252,1), rgba(248,250,252,0.6)),
+                              url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=2000&q=80');
+        }
+
+        #main-wrapper { min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem 4rem; }
+
+        /* Premium Glass Panel */
+        .glass-panel {
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-radius: 28px; width: 100%; max-width: 1050px; overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .dark .glass-panel {
+            background: rgba(15, 15, 17, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0,0,0,0.5) inset;
+        }
+
+        html:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(0, 0, 0, 0.1); border-top: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.1), 0 0 20px rgba(255,255,255,0.5) inset;
+        }
+
+        /* Role Buttons */
+        .role-btn { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .dark .role-btn { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); }
+        html:not(.dark) .role-btn { background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.05); }
+
+        .dark .role-btn:hover { background: rgba(255, 255, 255, 0.05); transform: translateY(-2px); }
+        html:not(.dark) .role-btn:hover { background: rgba(0, 0, 0, 0.05); transform: translateY(-2px); }
+
+        .role-btn.active-passenger { border-color: rgba(216, 78, 85, 0.5) !important; background: linear-gradient(145deg, rgba(216, 78, 85, 0.15) 0%, rgba(216, 78, 85, 0.02) 100%) !important; box-shadow: 0 10px 25px -5px rgba(216, 78, 85, 0.2); }
+        .role-btn.active-operator { border-color: rgba(59, 130, 246, 0.5) !important; background: linear-gradient(145deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.02) 100%) !important; box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.2); }
+        .role-btn.active-admin { border-color: rgba(139, 92, 246, 0.5) !important; background: linear-gradient(145deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.02) 100%) !important; box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.2); }
+
+        /* Custom Inputs */
+        input:not([type="file"]):not([type="checkbox"]) { font-size: 16px !important; transition: all 0.3s ease; }
+
+        .dark input:not([type="file"]):not([type="checkbox"]) { background: rgba(0, 0, 0, 0.4) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; color: white !important; }
+        .dark input::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+        html:not(.dark) input:not([type="file"]):not([type="checkbox"]) { background: white !important; border: 1px solid #e2e8f0 !important; color: #0f172a !important; }
+        html:not(.dark) input::placeholder { color: #94a3b8; }
+
+        /* Passenger Focus */
+        .dark .focus-passenger:focus-within input:not([type="file"]):not([type="checkbox"]) { border-color: #d84e55 !important; background: rgba(0, 0, 0, 0.7) !important; box-shadow: 0 0 0 4px rgba(216, 78, 85, 0.1); }
+        html:not(.dark) .focus-passenger:focus-within input:not([type="file"]):not([type="checkbox"]) { border-color: #d84e55 !important; box-shadow: 0 0 0 4px rgba(216, 78, 85, 0.1); }
+        .focus-passenger:focus-within i { color: #d84e55 !important; }
+
+        /* Operator Focus */
+        .dark .focus-operator:focus-within input:not([type="file"]):not([type="checkbox"]) { border-color: #3b82f6 !important; background: rgba(0, 0, 0, 0.7) !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        html:not(.dark) .focus-operator:focus-within input:not([type="file"]):not([type="checkbox"]) { border-color: #3b82f6 !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .focus-operator:focus-within i { color: #3b82f6 !important; }
+
+        /* Admin Focus */
+        .dark .focus-admin:focus-within input:not([type="file"]):not([type="checkbox"]) { border-color: #8b5cf6 !important; background: rgba(0, 0, 0, 0.7) !important; box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); }
+        html:not(.dark) .focus-admin:focus-within input:not([type="file"]):not([type="checkbox"]) { border-color: #8b5cf6 !important; box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); }
+        .focus-admin:focus-within i { color: #8b5cf6 !important; }
+
+        /* Smooth Animation */
+        .fade-enter { animation: smoothFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes smoothFadeIn {
+            0% { opacity: 0; transform: translateY(15px) scale(0.98); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        @media (min-width: 1024px) {
+            #tilt-card { transform-style: preserve-3d; transition: transform 0.1s ease-out; }
+        }
+        .text-gradient { background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-[#050505]">
+
+    <!-- Floating Theme Toggle for Login Page -->
+    <div class="fixed top-4 right-4 md:top-6 md:right-8 z-50">
+        <button id="theme-toggle" type="button" class="w-12 h-12 rounded-full bg-white/80 dark:bg-black/60 backdrop-blur-md border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white shadow-lg transition-all hover:scale-110">
+            <i id="theme-toggle-dark-icon" class="fa-solid fa-moon hidden text-lg"></i>
+            <i id="theme-toggle-light-icon" class="fa-solid fa-sun hidden text-lg"></i>
+        </button>
+    </div>
+
+    <div class="bg-image" id="bg-layer"></div>
+
+    <div id="main-wrapper">
+        <div id="tilt-card" class="w-full flex flex-col items-center">
+
+            <div class="text-center mb-8 md:mb-12 w-full px-4">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-[10px] font-bold tracking-[0.25em] text-gray-700 dark:text-white/70 mb-5 uppercase backdrop-blur-md shadow-lg transition-colors">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-red opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-red"></span>
+                    </span>
+                    Universal Access Portal
+                </div>
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight transition-colors">
+                    Your Journey <br class="md:hidden">
+                    <span class="bg-gradient-to-r from-brand-red via-rose-400 to-orange-400 text-gradient drop-shadow-md dark:drop-shadow-[0_0_15px_rgba(216,78,85,0.4)]">Begins Here.</span>
+                </h1>
+            </div>
+
+            <div class="glass-panel">
+                <div id="accent-line" class="w-full h-1.5 bg-brand-red transition-all duration-700 ease-in-out shadow-[0_0_20px_rgba(216,78,85,0.8)]"></div>
+
+                <div class="flex flex-col lg:flex-row">
+
+                    <div class="w-full lg:w-[320px] p-5 md:p-8 bg-gray-100/50 dark:bg-black/30 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-white/5 relative overflow-hidden transition-colors">
+                        <div id="sidebar-glow" class="absolute -top-20 -left-20 w-40 h-40 bg-brand-red/10 dark:bg-brand-red/20 rounded-full blur-3xl transition-colors duration-700 pointer-events-none"></div>
+
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-5 text-center lg:text-left relative z-10">Select Portal</p>
+
+                        <div class="grid grid-cols-3 lg:grid-cols-1 gap-3 md:gap-4 relative z-10">
+                            <button id="btn-passenger" onclick="switchRole('passenger')" class="role-btn active-passenger p-3 md:p-5 rounded-2xl flex flex-col lg:flex-row items-center gap-3 md:gap-4">
+                                <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-brand-red/20 border border-brand-red/30 text-brand-red flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(216,78,85,0.2)]"><i class="fa-solid fa-user"></i></div>
+                                <div class="text-center lg:text-left">
+                                    <h3 class="text-[11px] md:text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider transition-colors">Passenger</h3>
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-400 hidden lg:block mt-0.5 transition-colors">Book & Travel</p>
+                                </div>
+                            </button>
+
+                            <button id="btn-operator" onclick="switchRole('operator')" class="role-btn p-3 md:p-5 rounded-2xl flex flex-col lg:flex-row items-center gap-3 md:gap-4">
+                                <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-200 dark:bg-white/5 border border-transparent text-brand-blue flex items-center justify-center shrink-0 transition-colors"><i class="fa-solid fa-bus"></i></div>
+                                <div class="text-center lg:text-left">
+                                    <h3 class="text-[11px] md:text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider transition-colors">Operator</h3>
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-400 hidden lg:block mt-0.5 transition-colors">Bus Console</p>
+                                </div>
+                            </button>
+
+                            <button id="btn-admin" onclick="switchRole('admin')" class="role-btn p-3 md:p-5 rounded-2xl flex flex-col lg:flex-row items-center gap-3 md:gap-4">
+                                <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-200 dark:bg-white/5 border border-transparent text-brand-purple flex items-center justify-center shrink-0 transition-colors"><i class="fa-solid fa-shield-halved"></i></div>
+                                <div class="text-center lg:text-left">
+                                    <h3 class="text-[11px] md:text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider transition-colors">Admin</h3>
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-400 hidden lg:block mt-0.5 transition-colors">System Root</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 p-6 md:p-10 lg:p-14 relative min-h-[480px] bg-gradient-to-br from-white/[0.2] dark:from-white/[0.02] to-transparent">
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="mb-6 p-4 rounded-xl flex items-center gap-3 animate-slide-up {% if category == 'danger' %}bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400{% else %}bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400{% endif %} shadow-lg backdrop-blur-md transition-colors">
+                                        <i class="fa-solid {% if category == 'danger' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %} text-lg"></i>
+                                        <span class="text-sm font-semibold tracking-wide">{{ message }}</span>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div id="section-passenger" class="fade-enter block">
+
+                            <div id="passenger-login">
+                                <div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">Welcome Back</h2><p class="text-sm text-gray-500 dark:text-gray-400 mt-1 transition-colors">Sign in to manage your tickets and track buses.</p></div>
+                                <form method="POST" action="{{ url_for('login_post') }}" class="space-y-4">
+                                    <input type="hidden" name="login_type" value="passenger">
+
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_log_email" class="sr-only">Email Address</label>
+                                        <input type="email" id="pass_log_email" name="email" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Email Address" required>
+                                    </div>
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_log_pass" class="sr-only">Password</label>
+                                        <input type="password" id="pass_log_pass" name="password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Secure Password" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <button type="button" onclick="toggleMode('passenger', 'forgot')" class="text-[11px] text-gray-500 dark:text-gray-400 hover:text-brand-red dark:hover:text-brand-red font-bold uppercase tracking-wider transition-colors mt-2">Forgot Password?</button>
+                                    </div>
+                                    <button type="submit" class="w-full bg-gradient-to-r from-brand-red to-rose-500 hover:from-rose-500 hover:to-brand-red text-white font-bold py-4 rounded-2xl shadow-[0_5px_15px_-5px_rgba(216,78,85,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(216,78,85,0.6)] transform hover:-translate-y-0.5 transition-all mt-4 text-lg">
+                                        Secure Login
+                                    </button>
+                                </form>
+                                <div class="mt-8 text-center border-t border-gray-200 dark:border-white/5 pt-6 transition-colors">
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-3 transition-colors">New to Radhe Travels?</p>
+                                    <button onclick="toggleMode('passenger', 'register')" class="text-gray-900 dark:text-white hover:text-brand-red font-bold text-sm bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 px-6 py-2.5 rounded-full transition-all">Create Passenger Account</button>
+                                </div>
+                            </div>
+
+                            <div id="passenger-register" class="hidden">
+                                <div class="mb-6"><h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">Create Account</h2></div>
+                                <form method="POST" action="{{ url_for('register_post') }}" class="space-y-3.5">
+
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_reg_name" class="sr-only">Full Name</label>
+                                        <input type="text" id="pass_reg_name" name="full_name" placeholder="Full Name" class="w-full pl-12 pr-5 py-3.5 rounded-2xl" required>
+                                    </div>
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-phone absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_reg_mobile" class="sr-only">Mobile Number</label>
+                                        <input type="tel" id="pass_reg_mobile" name="mobile_no" placeholder="Mobile Number (10 Digits)" class="w-full pl-12 pr-5 py-3.5 rounded-2xl" pattern="[0-9]{10}" required>
+                                    </div>
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_reg_email" class="sr-only">Email Address</label>
+                                        <input type="email" id="pass_reg_email" name="email" placeholder="Email Address" class="w-full pl-12 pr-5 py-3.5 rounded-2xl" required>
+                                    </div>
+
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_reg_pass" class="sr-only">Password</label>
+                                        <input type="password" id="pass_reg_pass" name="password" placeholder="Password" class="w-full pl-12 pr-12 py-3.5 rounded-2xl" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_reg_conf_pass" class="sr-only">Confirm Password</label>
+                                        <input type="password" id="pass_reg_conf_pass" name="confirm_password" placeholder="Confirm Password" class="w-full pl-12 pr-12 py-3.5 rounded-2xl" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="pwd-rules hidden mt-2 p-3 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/5 rounded-xl text-[10px] text-gray-500 dark:text-gray-400 space-y-1.5 transition-all">
+                                        <p class="rule-length flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Minimum 8 characters</p>
+                                        <p class="rule-upper flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One uppercase letter (A-Z)</p>
+                                        <p class="rule-number flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One number (0-9)</p>
+                                        <p class="rule-special flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One special character (@$!%*?&)</p>
+                                        <p class="rule-match flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Passwords match</p>
+                                    </div>
+
+                                    <button type="submit" class="w-full bg-brand-red text-white font-bold py-4 rounded-2xl mt-4 shadow-[0_5px_15px_-5px_rgba(216,78,85,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(216,78,85,0.6)] hover:bg-red-600 transition-colors opacity-50 cursor-not-allowed" disabled>Join Radhe Travels</button>
+                                </form>
+                                <button onclick="toggleMode('passenger', 'login')" class="w-full mt-5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-arrow-left"></i> Back to Login</button>
+                            </div>
+
+                            <div id="passenger-forgot" class="hidden">
+                                <div class="mb-6">
+                                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">Account Recovery</h2>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors">Verify your identity to reset your password.</p>
+                                </div>
+                                <form method="POST" action="{{ url_for('forgot_password') }}" class="space-y-4">
+                                    <input type="hidden" name="user_type" value="passenger">
+
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_for_email" class="sr-only">Email Address</label>
+                                        <input type="email" id="pass_for_email" name="email" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Registered Email Address" required>
+                                    </div>
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-phone absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_for_mobile" class="sr-only">Mobile Number</label>
+                                        <input type="tel" id="pass_for_mobile" name="mobile_no" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Registered Mobile Number" pattern="[0-9]{10}" required>
+                                    </div>
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-key absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_for_pass" class="sr-only">New Password</label>
+                                        <input type="password" id="pass_for_pass" name="new_password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Enter New Password" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="relative focus-passenger">
+                                        <i class="fa-solid fa-key absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="pass_for_conf_pass" class="sr-only">Confirm New Password</label>
+                                        <input type="password" id="pass_for_conf_pass" name="confirm_password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Confirm New Password" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="pwd-rules hidden mt-2 p-3 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/5 rounded-xl text-[10px] text-gray-500 dark:text-gray-400 space-y-1.5 transition-all">
+                                        <p class="rule-length flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Minimum 8 characters</p>
+                                        <p class="rule-upper flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One uppercase letter (A-Z)</p>
+                                        <p class="rule-number flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One number (0-9)</p>
+                                        <p class="rule-special flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One special character (@$!%*?&)</p>
+                                        <p class="rule-match flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Passwords match</p>
+                                    </div>
+
+                                    <button type="submit" class="w-full bg-brand-red text-white font-bold py-4 rounded-2xl shadow-[0_5px_15px_-5px_rgba(216,78,85,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(216,78,85,0.6)] transform hover:-translate-y-0.5 transition-all mt-4 text-lg opacity-50 cursor-not-allowed" disabled>
+                                        Reset Password
+                                    </button>
+                                </form>
+                                <button onclick="toggleMode('passenger', 'login')" class="w-full mt-5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-arrow-left"></i> Back to Login</button>
+                            </div>
+                        </div>
+
+                        <div id="section-operator" class="hidden">
+
+                            <div id="operator-login">
+                                <div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">Bus Portal</h2><p class="text-sm text-gray-500 dark:text-gray-400 mt-1 transition-colors">Manage routes, schedules, and analytics.</p></div>
+                                <form method="POST" action="{{ url_for('login_post') }}" class="space-y-4">
+                                    <input type="hidden" name="login_type" value="operator">
+
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-id-badge absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_log_email" class="sr-only">Email Address</label>
+                                        <input type="email" id="op_log_email" name="email" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Partner Email ID" required>
+                                    </div>
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-key absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_log_pass" class="sr-only">Password</label>
+                                        <input type="password" id="op_log_pass" name="password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Security Token" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="flex justify-end">
+                                        <button type="button" onclick="toggleMode('operator', 'forgot')" class="text-[11px] text-gray-500 dark:text-gray-400 hover:text-brand-blue font-bold uppercase tracking-wider transition-colors mt-2">Forgot Token?</button>
+                                    </div>
+                                    <button type="submit" class="w-full bg-gradient-to-r from-brand-blue to-cyan-500 hover:from-cyan-500 hover:to-brand-blue text-white font-bold py-4 rounded-2xl shadow-[0_5px_15px_-5px_rgba(59,130,246,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(59,130,246,0.6)] transform hover:-translate-y-0.5 transition-all mt-4 text-lg">
+                                        Access Node
+                                    </button>
+                                </form>
+                                <div class="mt-8 text-center border-t border-gray-200 dark:border-white/5 pt-6 transition-colors">
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest mb-3 transition-colors">Want to run buses?</p>
+                                    <button onclick="toggleMode('operator', 'register')" class="text-gray-900 dark:text-white hover:text-brand-blue font-bold text-sm bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 px-6 py-2.5 rounded-full transition-all">Submit Partner Request</button>
+                                </div>
+                            </div>
+
+                            <div id="operator-register" class="hidden">
+                                <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3 mb-5 flex items-start gap-3 transition-colors">
+                                    <i class="fa-solid fa-circle-info text-blue-500 dark:text-blue-400 mt-0.5"></i>
+                                    <p class="text-[11px] text-blue-800 dark:text-blue-100 leading-relaxed font-medium transition-colors">New operator applications undergo manual verification by System Administrators. Please upload valid documentation.</p>
+                                </div>
+
+                                <form method="POST" action="{{ url_for('operator_register') }}" enctype="multipart/form-data" class="space-y-3.5">
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-building absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_reg_name" class="sr-only">Agency Name</label>
+                                        <input type="text" id="op_reg_name" name="operator_name" placeholder="Agency / Business Name" class="w-full pl-12 pr-5 py-3.5 rounded-2xl" required>
+                                    </div>
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-phone absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_reg_mobile" class="sr-only">Mobile Number</label>
+                                        <input type="tel" id="op_reg_mobile" name="mobile_no" placeholder="Primary Contact (10 Digits)" class="w-full pl-12 pr-5 py-3.5 rounded-2xl" pattern="[0-9]{10}" required>
+                                    </div>
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_reg_email" class="sr-only">Email Address</label>
+                                        <input type="email" id="op_reg_email" name="email" placeholder="Business Email" class="w-full pl-12 pr-5 py-3.5 rounded-2xl" required>
+                                    </div>
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_reg_pass" class="sr-only">Password</label>
+                                        <input type="password" id="op_reg_pass" name="password" placeholder="Password" class="w-full pl-12 pr-12 py-3.5 rounded-2xl" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_reg_conf_pass" class="sr-only">Confirm Password</label>
+                                        <input type="password" id="op_reg_conf_pass" name="confirm_password" placeholder="Confirm Password" class="w-full pl-12 pr-12 py-3.5 rounded-2xl" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="pwd-rules hidden mt-2 p-3 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/5 rounded-xl text-[10px] text-gray-500 dark:text-gray-400 space-y-1.5 transition-all">
+                                        <p class="rule-length flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Minimum 8 characters</p>
+                                        <p class="rule-upper flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One uppercase letter (A-Z)</p>
+                                        <p class="rule-number flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One number (0-9)</p>
+                                        <p class="rule-special flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One special character (@$!%*?&)</p>
+                                        <p class="rule-match flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Passwords match</p>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+                                        <div class="relative focus-operator">
+                                            <label for="license_doc" class="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase mb-1 ml-1 transition-colors">Trade License / ID</label>
+                                            <input type="file" id="license_doc" name="license_document"
+                                                   class="w-full pl-3 pr-3 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-gray-400 text-xs transition-colors cursor-pointer
+                                                          file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
+                                                          file:text-[10px] file:font-bold file:uppercase file:tracking-wider
+                                                          file:bg-blue-100 dark:file:bg-brand-blue/20 file:text-brand-blue hover:file:bg-blue-200 dark:hover:file:bg-brand-blue/30"
+                                                   accept=".pdf,.jpg,.jpeg,.png" required>
+                                        </div>
+                                        <div class="relative focus-operator">
+                                            <label for="bus_reg_doc" class="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase mb-1 ml-1 transition-colors">Fleet Registry Doc</label>
+                                            <input type="file" id="bus_reg_doc" name="bus_registration_document"
+                                                   class="w-full pl-3 pr-3 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-gray-400 text-xs transition-colors cursor-pointer
+                                                          file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
+                                                          file:text-[10px] file:font-bold file:uppercase file:tracking-wider
+                                                          file:bg-blue-100 dark:file:bg-brand-blue/20 file:text-brand-blue hover:file:bg-blue-200 dark:hover:file:bg-brand-blue/30"
+                                                   accept=".pdf,.jpg,.jpeg,.png" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="relative focus-operator mt-3">
+                                        <label class="flex items-center gap-3 cursor-pointer bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                                            <input type="checkbox" name="terms" required class="w-4 h-4 rounded bg-white dark:bg-black/40 border-gray-300 dark:border-white/20 text-brand-blue focus:ring-brand-blue">
+                                            <span class="text-[10px] text-gray-700 dark:text-gray-300 leading-snug transition-colors">
+                                                I accept the <a href="{{ url_for('operator_terms') }}" target="_blank" class="text-brand-blue font-bold hover:underline">Operator Terms & Conditions</a>, verify my documents are authentic, and agree to the platform commission structure.
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-2xl mt-4 shadow-[0_5px_15px_-5px_rgba(59,130,246,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(59,130,246,0.6)] hover:bg-blue-600 transition-colors opacity-50 cursor-not-allowed" disabled>Submit Application</button>
+                                </form>
+                                <button onclick="toggleMode('operator', 'login')" class="w-full mt-5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-arrow-left"></i> Back to Login</button>
+                            </div>
+
+                            <div id="operator-forgot" class="hidden">
+                                <div class="mb-6">
+                                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">Operator Recovery</h2>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors">Verify business credentials to reset access token.</p>
+                                </div>
+                                <form method="POST" action="{{ url_for('forgot_password') }}" class="space-y-4">
+                                    <input type="hidden" name="user_type" value="operator">
+
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_for_email" class="sr-only">Email Address</label>
+                                        <input type="email" id="op_for_email" name="email" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Registered Partner Email" required>
+                                    </div>
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-phone absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_for_mobile" class="sr-only">Mobile Number</label>
+                                        <input type="tel" id="op_for_mobile" name="mobile_no" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Primary Contact Number" pattern="[0-9]{10}" required>
+                                    </div>
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-key absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_for_pass" class="sr-only">New Password</label>
+                                        <input type="password" id="op_for_pass" name="new_password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Enter New Token" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="relative focus-operator">
+                                        <i class="fa-solid fa-key absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                        <label for="op_for_conf_pass" class="sr-only">Confirm New Token</label>
+                                        <input type="password" id="op_for_conf_pass" name="confirm_password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Confirm New Token" required>
+                                        <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="pwd-rules hidden mt-2 p-3 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/5 rounded-xl text-[10px] text-gray-500 dark:text-gray-400 space-y-1.5 transition-all">
+                                        <p class="rule-length flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Minimum 8 characters</p>
+                                        <p class="rule-upper flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One uppercase letter (A-Z)</p>
+                                        <p class="rule-number flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One number (0-9)</p>
+                                        <p class="rule-special flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> One special character (@$!%*?&)</p>
+                                        <p class="rule-match flex items-center gap-2"><i class="fa-solid fa-circle text-[8px] opacity-50 w-3 text-center transition-colors"></i> Passwords match</p>
+                                    </div>
+
+                                    <button type="submit" class="w-full bg-brand-blue text-white font-bold py-4 rounded-2xl shadow-[0_5px_15px_-5px_rgba(59,130,246,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(59,130,246,0.6)] transform hover:-translate-y-0.5 transition-all mt-4 text-lg opacity-50 cursor-not-allowed" disabled>
+                                        Reset Access Token
+                                    </button>
+                                </form>
+                                <button onclick="toggleMode('operator', 'login')" class="w-full mt-5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-arrow-left"></i> Back to Login</button>
+                            </div>
+                        </div>
+
+                        <div id="section-admin" class="hidden">
+                            <div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight transition-colors">System Root</h2><p class="text-sm text-gray-500 dark:text-gray-400 mt-1 transition-colors">Superuser command center access.</p></div>
+                            <form method="POST" action="{{ url_for('login_post') }}" class="space-y-4">
+                                <input type="hidden" name="login_type" value="admin">
+
+                                <div class="relative focus-admin">
+                                    <i class="fa-solid fa-server absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                    <label for="admin_log_email" class="sr-only">Email Address</label>
+                                    <input type="email" id="admin_log_email" name="email" class="w-full pl-12 pr-5 py-4 rounded-2xl" placeholder="Root Credential (Email)" required>
+                                </div>
+                                <div class="relative focus-admin">
+                                    <i class="fa-solid fa-fingerprint absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 transition-colors pointer-events-none"></i>
+                                    <label for="admin_log_pass" class="sr-only">Password</label>
+                                    <input type="password" id="admin_log_pass" name="password" class="w-full pl-12 pr-12 py-4 rounded-2xl" placeholder="Master Key" required>
+                                    <button type="button" onclick="togglePassword(this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                </div>
+
+                                <button type="submit" class="w-full bg-gradient-to-r from-brand-purple to-fuchsia-600 hover:from-fuchsia-600 hover:to-brand-purple text-white font-bold py-4 rounded-2xl shadow-[0_5px_15px_-5px_rgba(139,92,246,0.4)] dark:shadow-[0_10px_20px_-10px_rgba(139,92,246,0.6)] transform hover:-translate-y-0.5 transition-all mt-6 text-lg">
+                                    Authorize Root
+                                </button>
+                            </form>
+                            <div class="mt-12 p-4 rounded-xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/40 flex items-center gap-4 transition-colors">
+                                <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center text-green-600 dark:text-green-500 shrink-0 transition-colors">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-900 dark:text-white font-bold transition-colors">Zero-Trust Network Active</p>
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-500 mt-0.5 transition-colors">All authentication attempts are logged and monitored.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-10 text-center flex flex-col items-center gap-2">
+                <div class="w-12 h-1 bg-gray-300 dark:bg-white/10 rounded-full mb-2 transition-colors"></div>
+                <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-[0.2em] font-bold opacity-80 dark:opacity-60 transition-colors">Engineered by Radhe Travels Systems</p>
+                <p class="text-[9px] text-gray-400 dark:text-gray-600 uppercase tracking-widest font-medium transition-colors">&copy; 2026 • Secure Gateway • Build v2.4.1</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password Real-Time Validation Engine
+        document.addEventListener('input', function(e) {
+            const form = e.target.closest('form');
+            if (!form) return;
+
+            const pwdInput = form.querySelector('input[name="password"], input[name="new_password"]');
+            const confInput = form.querySelector('input[name="confirm_password"]');
+            const rulesDiv = form.querySelector('.pwd-rules');
+
+            if (pwdInput && confInput && rulesDiv) {
+                rulesDiv.classList.remove('hidden');
+
+                const val = pwdInput.value;
+                const confVal = confInput.value;
+
+                // Validation Regex Rules
+                const hasLen = val.length >= 8;
+                const hasUpper = /[A-Z]/.test(val);
+                const hasNum = /[0-9]/.test(val);
+                const hasSpec = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+                const isMatch = val === confVal && val.length > 0;
+
+                const updateRule = (className, isValid) => {
+                    const el = rulesDiv.querySelector(className);
+                    if (!el) return;
+                    const icon = el.querySelector('i');
+
+                    el.classList.remove('text-gray-500', 'dark:text-gray-400', 'text-green-600', 'dark:text-green-400', 'text-red-600', 'dark:text-red-400');
+
+                    if (isValid) {
+                        el.classList.add('text-green-600', 'dark:text-green-400');
+                        icon.className = 'fa-solid fa-circle-check w-3 text-center text-green-600 dark:text-green-400';
+                    } else if (val.length > 0 || confVal.length > 0) {
+                        el.classList.add('text-red-600', 'dark:text-red-400');
+                        icon.className = 'fa-solid fa-circle-xmark w-3 text-center text-red-600 dark:text-red-400';
+                    } else {
+                        el.classList.add('text-gray-500', 'dark:text-gray-400');
+                        icon.className = 'fa-solid fa-circle text-[8px] opacity-50 w-3 text-center text-gray-500 dark:text-gray-400';
+                    }
+                };
+
+                updateRule('.rule-length', hasLen);
+                updateRule('.rule-upper', hasUpper);
+                updateRule('.rule-number', hasNum);
+                updateRule('.rule-special', hasSpec);
+                updateRule('.rule-match', isMatch);
+
+                // Enable/Disable Submit Button
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    if (hasLen && hasUpper && hasNum && hasSpec && isMatch) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        submitBtn.disabled = true;
+                        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+            }
+        });
+
+        // Toggle Password Visibility
+        function togglePassword(btn) {
+            const input = btn.parentElement.querySelector('input');
+            const icon = btn.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Cinematic Tilt Effect
+        if (window.innerWidth >= 1024 && window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                const card = document.getElementById('tilt-card');
+                const bg = document.getElementById('bg-layer');
+                const x = (window.innerWidth / 2 - e.pageX) / 80;
+                const y = (window.innerHeight / 2 - e.pageY) / 80;
+                card.style.transform = `rotateY(${x}deg) rotateX(${y}deg) translateZ(10px)`;
+                bg.style.transform = `scale(1.05) translateX(${x * 0.3}px) translateY(${y * 0.3}px)`;
+            });
+        }
+
+        // Role Switcher
+        function switchRole(role) {
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                btn.className = 'role-btn p-3 md:p-5 rounded-2xl flex flex-col lg:flex-row items-center gap-3 md:gap-4';
+                btn.querySelector('div').className = 'w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-200 dark:bg-white/5 border border-transparent text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0 transition-colors';
+            });
+
+            const activeBtn = document.getElementById(`btn-${role}`);
+            activeBtn.classList.add(`active-${role}`);
+
+            const activeIcon = activeBtn.querySelector('div');
+            const line = document.getElementById('accent-line');
+            const glow = document.getElementById('sidebar-glow');
+
+            if(role === 'passenger') {
+                activeIcon.className = 'w-10 h-10 md:w-12 md:h-12 rounded-xl bg-brand-red/10 dark:bg-brand-red/20 border border-brand-red/20 dark:border-brand-red/30 text-brand-red flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(216,78,85,0.2)] transition-colors';
+                line.className = 'w-full h-1.5 bg-brand-red transition-colors duration-700 ease-in-out shadow-[0_0_20px_rgba(216,78,85,0.8)]';
+                glow.className = 'absolute -top-20 -left-20 w-40 h-40 bg-brand-red/10 dark:bg-brand-red/20 rounded-full blur-3xl transition-colors duration-700 pointer-events-none';
+            } else if(role === 'operator') {
+                activeIcon.className = 'w-10 h-10 md:w-12 md:h-12 rounded-xl bg-brand-blue/10 dark:bg-brand-blue/20 border border-brand-blue/20 dark:border-brand-blue/30 text-brand-blue flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-colors';
+                line.className = 'w-full h-1.5 bg-brand-blue transition-colors duration-700 ease-in-out shadow-[0_0_20px_rgba(59,130,246,0.8)]';
+                glow.className = 'absolute -top-20 -left-20 w-40 h-40 bg-brand-blue/10 dark:bg-brand-blue/20 rounded-full blur-3xl transition-colors duration-700 pointer-events-none';
+            } else {
+                activeIcon.className = 'w-10 h-10 md:w-12 md:h-12 rounded-xl bg-brand-purple/10 dark:bg-brand-purple/20 border border-brand-purple/20 dark:border-brand-purple/30 text-brand-purple flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(139,92,246,0.2)] transition-colors';
+                line.className = 'w-full h-1.5 bg-brand-purple transition-colors duration-700 ease-in-out shadow-[0_0_20px_rgba(139,92,246,0.8)]';
+                glow.className = 'absolute -top-20 -left-20 w-40 h-40 bg-brand-purple/10 dark:bg-brand-purple/20 rounded-full blur-3xl transition-colors duration-700 pointer-events-none';
+            }
+
+            ['section-passenger', 'section-operator', 'section-admin'].forEach(id => {
+                const el = document.getElementById(id);
+                el.style.display = 'none';
+                el.classList.remove('fade-enter');
+            });
+
+            toggleMode(role, 'login');
+
+            const activeSection = document.getElementById(`section-${role}`);
+            activeSection.style.display = 'block';
+            setTimeout(() => activeSection.classList.add('fade-enter'), 10);
+        }
+
+        // Mode Switcher (Login / Register / Forgot)
+        function toggleMode(role, mode) {
+            const login = document.getElementById(`${role}-login`);
+            const reg = document.getElementById(`${role}-register`);
+            const forgot = document.getElementById(`${role}-forgot`);
+
+            if (login) login.style.display = 'none';
+            if (reg) reg.style.display = 'none';
+            if (forgot) forgot.style.display = 'none';
+
+            const activeEl = document.getElementById(`${role}-${mode}`);
+            if (activeEl) {
+                activeEl.style.display = 'block';
+                activeEl.classList.add('fade-enter');
+            }
+        }
+
+        // --- DARK MODE TOGGLE LOGIC ---
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+
+        // Check Local Storage or System Preference on Load
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+            document.documentElement.classList.add('dark');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Toggle Event Listener
+        themeToggleBtn.addEventListener('click', function() {
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            if (localStorage.getItem('color-theme')) {
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                }
+            } else {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            }
+        });
+
+        // Initialize state
+        {% if request.args.get('role') %}
+            switchRole("{{ request.args.get('role') }}");
+        {% endif %}
+    </script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}System Reports{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Slide-up animations for the central content */
+    .animate-slide-up { animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 md:p-10 max-w-7xl mx-auto pb-20">
+
+    <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 animate-slide-up">
+        <div>
+            <h2 class="text-3xl font-heading font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">System Analytics</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">Platform-wide data, revenue tracking, and operator performance.</p>
+        </div>
+        <button class="bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 text-xs font-bold px-5 py-2.5 rounded-lg transition-colors sm:w-auto w-full flex items-center justify-center gap-2 shadow-sm dark:shadow-none">
+            <i class="fa-solid fa-download"></i> Export Data
+        </button>
+    </header>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up" style="animation-delay: 0.1s;">
+        <div class="glass-card p-6 border-l-4 border-l-purple-600 dark:border-l-brand-purple transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Total Gross Revenue</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white font-mono transition-colors">₹ {{ "{:,.2f}".format(stats.revenue) }}</h3>
+        </div>
+        <div class="glass-card p-6 border-l-4 border-l-yellow-600 dark:border-l-brand-gold transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Successful Tickets</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white font-mono transition-colors">{{ stats.bookings }}</h3>
+        </div>
+        <div class="glass-card p-6 border-l-4 border-l-blue-600 dark:border-l-blue-500 transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Active Passengers</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white font-mono transition-colors">{{ stats.users }}</h3>
+        </div>
+        <div class="glass-card p-6 border-l-4 border-l-red-600 dark:border-l-brand-red transition-colors">
+            <p class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-extrabold tracking-widest mb-1 transition-colors">Fleet Agencies</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white font-mono transition-colors">{{ stats.operators }}</h3>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 animate-slide-up" style="animation-delay: 0.2s;">
+
+        <div class="lg:col-span-2 glass-card p-6 md:p-8 transition-colors">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-3 transition-colors">
+                <span class="flex items-center gap-2"><i class="fa-solid fa-chart-area text-purple-600 dark:text-brand-purple transition-colors"></i> Last 7 Days Revenue</span>
+            </h3>
+            <div class="h-64 md:h-80 w-full"><canvas id="adminRevenueChart"></canvas></div>
+        </div>
+
+        <div class="lg:col-span-1 glass-card p-6 md:p-8 flex flex-col transition-colors">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-white/5 pb-3 transition-colors">
+                <i class="fa-solid fa-trophy text-yellow-600 dark:text-brand-gold mr-2 transition-colors"></i> Top Operators
+            </h3>
+
+            <div class="flex-1 space-y-4">
+                {% for op in top_operators %}
+                <div class="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 p-4 rounded-xl flex items-center justify-between group hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-yellow-100 dark:bg-brand-gold/10 text-yellow-700 dark:text-brand-gold flex items-center justify-center font-bold text-xs transition-colors">
+                            {{ loop.index }}
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white transition-colors">{{ op.name }}</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-500 font-mono transition-colors">{{ op.tickets_sold }} Tickets Sold</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-bold text-green-600 dark:text-green-400 transition-colors">₹{{ "{:,.0f}".format(op.total_revenue) }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fa-solid fa-ghost text-4xl text-gray-400 dark:text-gray-700 mb-3 transition-colors"></i>
+                    <p class="text-xs text-gray-500 dark:text-gray-500 transition-colors">Not enough data to rank operators yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<input type="hidden" id="chart-labels-data" value="{{ rev_labels | tojson | force escape }}">
+<input type="hidden" id="chart-values-data" value="{{ rev_vals | tojson | force escape }}">
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    /* global Chart */
+    document.addEventListener("DOMContentLoaded", function() {
+        // Safely parse the data from the hidden inputs
+        const labels = JSON.parse(document.getElementById('chart-labels-data').value);
+        const dataValues = JSON.parse(document.getElementById('chart-values-data').value);
+
+        // Determine if Dark Mode is active for Chart grids/text
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const textColor = isDarkMode ? '#64748b' : '#94a3b8';
+        const tooltipBg = isDarkMode ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+        const tooltipTitle = isDarkMode ? '#9ca3af' : '#64748b';
+        const tooltipBody = isDarkMode ? '#fff' : '#0f172a';
+
+        const ctx = document.getElementById('adminRevenueChart').getContext('2d');
+
+        // Create a beautiful purple gradient fill
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)'); // Purple
+        gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Gross Volume (₹)',
+                    data: dataValues,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: tooltipBg,
+                        titleColor: tooltipTitle,
+                        bodyColor: tooltipBody,
+                        bodyFont: { weight: 'bold' },
+                        borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return '₹ ' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: textColor, font: { size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { color: textColor, font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
