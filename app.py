@@ -73,8 +73,8 @@ mysql.init_app(app)
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
-    client_id='YOUR_GOOGLE_CLIENT_ID_HERE',  # <-- PASTE YOUR GOOGLE CLIENT ID HERE
-    client_secret='YOUR_GOOGLE_CLIENT_SECRET_HERE',  # <-- PASTE YOUR GOOGLE CLIENT SECRET HERE
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
 )
