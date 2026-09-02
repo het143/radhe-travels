@@ -2,10 +2,18 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from database.db_connection import mysql
 import config
 from flask_socketio import SocketIO, emit
+
+# Required for saving uploaded documents securely!
 import os
 from werkzeug.utils import secure_filename
+
+# Werkzeug Security for Password Hashing
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# ---------------------------------------------------------
+# GOOGLE OAUTH IMPORTS
+# ---------------------------------------------------------
+# noinspection PyUnresolvedReferences
 from authlib.integrations.flask_client import OAuth
 import secrets
 import string
@@ -28,6 +36,7 @@ def handle_connect():
 
 @socketio.on("disconnect")
 def handle_disconnect():
+    # noinspection PyUnresolvedReferences
     user_sid = request.sid
     if user_sid in active_clients:
         del active_clients[user_sid]
@@ -36,6 +45,7 @@ def handle_disconnect():
 
 @socketio.on("send_location")
 def handle_location(data):
+    # noinspection PyUnresolvedReferences
     user_sid = request.sid
     active_clients[user_sid] = {
         "id": user_sid,
@@ -59,11 +69,12 @@ mysql.init_app(app)
 # ---------------------------------------------------------
 # GOOGLE OAUTH CONFIGURATION
 # ---------------------------------------------------------
+# noinspection PyUnresolvedReferences
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
-    client_id='YOUR_GOOGLE_CLIENT_ID_HERE',
-    client_secret='YOUR_GOOGLE_CLIENT_SECRET_HERE',
+    client_id='YOUR_GOOGLE_CLIENT_ID_HERE',  # <-- PASTE YOUR GOOGLE CLIENT ID HERE
+    client_secret='YOUR_GOOGLE_CLIENT_SECRET_HERE',  # <-- PASTE YOUR GOOGLE CLIENT SECRET HERE
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
 )
@@ -72,6 +83,7 @@ google = oauth.register(
 # =========================================================
 # AUTHENTICATION SYSTEM & ROUTING
 # =========================================================
+
 @app.route("/")
 def root_redirect():
     return redirect(url_for("passenger_home"))
@@ -102,11 +114,13 @@ def login_post():
     email = request.form.get("email")
     password = request.form.get("password")
     login_type = request.form.get("login_type")
+
     cur = mysql.connection.cursor()
 
     if login_type == "admin":
         cur.execute("SELECT admin_id, password FROM admin WHERE email=%s", (email,))
         admin = cur.fetchone()
+
         if admin and check_password_hash(admin[1], password):
             session["admin"] = admin[0]
             cur.close()
@@ -117,6 +131,7 @@ def login_post():
     elif login_type == "operator":
         cur.execute("SELECT operator_id, account_status, password FROM operator WHERE email=%s", (email,))
         operator = cur.fetchone()
+
         if operator and check_password_hash(operator[2], password):
             if operator[1] == 1:
                 session["operator"] = operator[0]
@@ -132,6 +147,7 @@ def login_post():
     elif login_type == "passenger":
         cur.execute("SELECT user_id, full_name, password FROM user WHERE email=%s", (email,))
         user = cur.fetchone()
+
         if user and check_password_hash(user[2], password):
             session["user"] = user[0]
             session["user_name"] = user[1]
@@ -139,6 +155,7 @@ def login_post():
             return redirect(url_for("passenger_home"))
         else:
             flash("Invalid Passenger credentials.", "danger")
+
     else:
         flash("Invalid login attempt.", "danger")
 
@@ -159,6 +176,7 @@ def register_post():
         return redirect(url_for("login_page"))
 
     hashed_password = generate_password_hash(password)
+
     try:
         cur = mysql.connection.cursor()
         cur.execute("INSERT INTO user(full_name, email, mobile_no, password) VALUES (%s, %s, %s, %s)",
@@ -184,6 +202,7 @@ def forgot_password():
         return redirect(url_for("login_page"))
 
     hashed_password = generate_password_hash(new_password)
+
     cur = mysql.connection.cursor()
     try:
         if user_type == "passenger":
@@ -194,6 +213,7 @@ def forgot_password():
                 flash("Password reset successfully! Please login.", "success")
             else:
                 flash("Identity verification failed. Invalid Email or Mobile Number.", "danger")
+
         elif user_type == "operator":
             cur.execute("SELECT * FROM operator WHERE email=%s AND mobile_no=%s", (email, mobile_no))
             if cur.fetchone():
@@ -202,6 +222,7 @@ def forgot_password():
                 flash("Access Token reset successfully! Please login.", "success")
             else:
                 flash("Identity verification failed. Invalid Email or Mobile Number.", "danger")
+
     except Exception as e:
         flash(f"Database Error: {str(e)}", "danger")
     finally:
@@ -228,11 +249,13 @@ def operator_register():
         return redirect(url_for("login_page"))
 
     hashed_password = generate_password_hash(password)
+
     license_doc = request.files.get("license_document")
     bus_doc = request.files.get("bus_registration_document")
 
     try:
         cur = mysql.connection.cursor()
+
         license_filename = None
         if license_doc and license_doc.filename:
             license_filename = secure_filename(f"lic_{mobile_no}_{license_doc.filename}")
@@ -259,6 +282,9 @@ def operator_register():
     return redirect(url_for("login_page"))
 
 
+# =========================================================
+# GOOGLE LOGIN ROUTES (PASSENGERS ONLY)
+# =========================================================
 @app.route('/google_login')
 def google_login():
     redirect_uri = url_for('google_callback', _external=True)
@@ -270,27 +296,39 @@ def google_callback():
     try:
         token = google.authorize_access_token()
         user_info = token.get('userinfo')
+
         email = user_info.get('email')
         name = user_info.get('name')
         picture = user_info.get('picture')
 
         cur = mysql.connection.cursor()
+
+        # 1. Check if this passenger already exists in our system
         cur.execute("SELECT user_id FROM user WHERE email = %s", (email,))
         existing_user = cur.fetchone()
 
         if existing_user:
+            # Returning User: Log them in and optionally update their profile picture
             session['user'] = existing_user[0]
             session['user_name'] = name
+
             try:
                 cur.execute("UPDATE user SET profile_image = %s WHERE email = %s", (picture, email))
                 mysql.connection.commit()
             except Exception as e:
                 print(f"Non-critical image update error: {e}")
+
             flash(f"Welcome back, {name}!", "success")
         else:
+            # 2. New User: Auto-register them in the database!
+
+            # Generate a secure dummy password since they authenticate via Google
+            # FIXED: Replaced 'i' with '_' to resolve IDE warning
             alphabet = string.ascii_letters + string.digits
-            dummy_password = ''.join(secrets.choice(alphabet) for i in range(16))
+            dummy_password = ''.join(secrets.choice(alphabet) for _ in range(16))
             hashed_password = generate_password_hash(dummy_password)
+
+            # Note: We provide 'Google Auth' as a placeholder mobile number
             cur.execute("""
                 INSERT INTO user (full_name, email, mobile_no, password, profile_image) 
                 VALUES (%s, %s, %s, %s, %s)
@@ -300,10 +338,12 @@ def google_callback():
             session['user'] = new_user_id
             session['user_name'] = name
             mysql.connection.commit()
+
             flash("Google Registration successful! Welcome to Radhe Travels.", "success")
 
         cur.close()
         return redirect(url_for('passenger_home'))
+
     except Exception as e:
         print(f"Google Auth Error: {e}")
         flash("Google Login failed. Please try again or use email/password.", "danger")
@@ -322,6 +362,9 @@ def logout():
     return redirect(url_for("login_page"))
 
 
+# =========================================================
+# ADMIN NETWORK MAP ROUTE
+# =========================================================
 @app.route("/admin/network_map")
 def admin_network_map():
     if "admin" not in session:
@@ -330,6 +373,7 @@ def admin_network_map():
 
     live_passengers = []
     live_buses = []
+
     for sid, data in active_clients.items():
         if data.get("type") == "passenger":
             live_passengers.append({
@@ -347,9 +391,13 @@ def admin_network_map():
                 "lng": data.get("longitude"),
                 "status": "Moving"
             })
+
     return render_template("admin/map.html", buses=live_buses, passengers=live_passengers)
 
 
+# =========================================================
+# GLOBAL ERROR HANDLERS (404 Page Not Found)
+# =========================================================
 @app.errorhandler(404)
 def page_not_found(_):
     return render_template('404.html'), 404
@@ -361,10 +409,18 @@ def internal_server_error(e):
     return render_template('404.html'), 500
 
 
+# =========================================================
+# CONTROLLER IMPORTS (Must stay at the bottom)
+# =========================================================
+
+# noinspection PyUnresolvedReferences
 from controllers import admin_controller
+# noinspection PyUnresolvedReferences
 from controllers import operator_controller
+# noinspection PyUnresolvedReferences
 from controllers import passenger_controller
 
-# NEW: Server Execution setup via SocketIO
+
+# Server Execution setup via SocketIO
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=5000)

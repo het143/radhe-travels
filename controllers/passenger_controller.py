@@ -66,7 +66,7 @@ def passenger_home():
         cur.close()
 
     today = datetime.now().strftime('%Y-%m-%d')
-    return render_template("passenger/home.html", user_name=get_passenger_name(), routes=routes, cities=cities,
+    return render_template("passenger/index.html", user_name=get_passenger_name(), routes=routes, cities=cities,
                            today=today, active_bookings=active_bookings)
 
 
