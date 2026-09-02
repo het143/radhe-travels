@@ -1,4 +1,4 @@
-
+import traceback
 
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -409,11 +409,12 @@ def page_not_found(_):
 
 
 @app.errorhandler(500)
-def internal_server_error(e):
-    print(f"CRITICAL SERVER ERROR: {e}")
+def internal_server_error():
+    # This prints the full, detailed error stack trace to your Railway logs
+    print("--- FULL CRITICAL ERROR TRACEBACK ---")
+    traceback.print_exc()
+    print("---------------------------------------")
     return render_template('404.html'), 500
-
-
 # =========================================================
 # CONTROLLER IMPORTS (Must stay at the bottom)
 # =========================================================
