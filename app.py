@@ -1,5 +1,4 @@
-import eventlet
-eventlet.monkey_patch()
+
 
 import pymysql
 pymysql.install_as_MySQLdb()
